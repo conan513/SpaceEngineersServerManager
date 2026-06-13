@@ -449,17 +449,21 @@ class ServerManagerApp {
     }
 
     this.mods.forEach((mod, index) => {
+      const depBadge = mod.isDependency
+        ? `<span class="badge-dep" title="Automatically added as a required dependency">DEP</span>`
+        : '';
       const tr = document.createElement('tr');
+      tr.className = mod.isDependency ? 'mod-row-dep' : '';
       tr.innerHTML = `
-        <td><strong>${mod.title || 'Loading Name...'}</strong></td>
+        <td><strong>${mod.title || 'Unknown Mod'}</strong> ${depBadge}</td>
         <td><code>${mod.id}</code></td>
         <td>
           <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=${mod.id}" target="_blank" class="table-link">
-            Workshop Link 🔗
+            Workshop 🔗
           </a>
         </td>
         <td class="actions-col">
-          <button class="btn btn-sm btn-danger btn-remove-mod" data-index="${index}">Delete</button>
+          <button class="btn btn-sm btn-danger btn-remove-mod" data-index="${index}">Remove</button>
         </td>
       `;
       tbody.appendChild(tr);
