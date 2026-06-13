@@ -297,16 +297,17 @@
         <section id="tab-mods" class="tab-panel">
           <div class="glass-card">
             <h3>Steam Workshop Mod List</h3>
-            <p class="description">Add Steam Workshop Mod IDs here. Space Engineers will download and keep them updated automatically upon start.</p>
+            <p class="description">Add Steam Workshop Mod IDs here. Space Engineers will download mods automatically on start. When you add a mod, all required dependencies are also automatically discovered and added.</p>
             
             <div class="mod-add-container">
               <div class="form-group">
-                <label for="new-mod-id">Steam Workshop Mod ID</label>
+                <label for="new-mod-id">Steam Workshop Mod ID (Press Enter or click Add Mod)</label>
                 <div class="input-with-button">
                   <input type="text" id="new-mod-id" placeholder="e.g. 1521905890" pattern="[0-9]+">
                   <button id="btn-add-mod" class="btn btn-primary">Add Mod</button>
                 </div>
               </div>
+              <div id="mod-add-status" class="status-msg" style="margin-top: 0.5rem;"></div>
             </div>
 
             <div class="mods-list-container">
@@ -314,6 +315,7 @@
                 <table class="data-table">
                   <thead>
                     <tr>
+                      <th>Mod Name</th>
                       <th>Workshop ID</th>
                       <th>Steam Workshop Link</th>
                       <th class="actions-col">Actions</th>
@@ -321,7 +323,7 @@
                   </thead>
                   <tbody id="mods-table-body">
                     <tr>
-                      <td colspan="3" class="text-center">Loading mod configuration...</td>
+                      <td colspan="4" class="text-center">Loading mod configuration...</td>
                     </tr>
                   </tbody>
                 </table>

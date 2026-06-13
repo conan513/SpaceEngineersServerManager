@@ -674,7 +674,83 @@ app.post('/api/config', async (req, res) => {
   }
 });
 
-// 7. GET CONFIG MODS LIST
+// Steam Web API Helper to fetch details of multiple workshop items
+async function getModDetails(modIds) {
+  if (!modIds || modIds.length === 0) return [];
+  try {
+    const params = new URLSearchParams();
+    params.append('itemcount', modIds.length.toString());
+    modIds.forEach((id, idx) => {
+      params.append(`publishedfileids[${idx}]`, id);
+    });
+
+    const response = await fetch('https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString()
+    });
+
+    if (!response.ok) {
+      return modIds.map(id => ({ id, title: `Workshop Mod #${id}` }));
+    }
+
+    const data = await response.json();
+    const details = data.response?.publishedfiledetails || [];
+    
+    return details.map(item => ({
+      id: item.publishedfileid,
+      title: item.title || `Workshop Mod #${item.publishedfileid}`
+    }));
+  } catch (err) {
+    console.error('Error fetching mod details from Steam API:', err.message);
+    return modIds.map(id => ({ id, title: `Workshop Mod #${id}` }));
+  }
+}
+
+// Recursively fetch all dependency workshop item IDs
+async function fetchModDependencies(modId, visited = new Set()) {
+  if (visited.has(modId)) return [];
+  visited.add(modId);
+
+  try {
+    const params = new URLSearchParams();
+    params.append('itemcount', '1');
+    params.append('publishedfileids[0]', modId);
+    params.append('includechildren', 'true');
+
+    const response = await fetch('https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString()
+    });
+
+    if (!response.ok) return [];
+
+    const data = await response.json();
+    const details = data.response?.publishedfiledetails?.[0];
+    if (!details || details.result !== 1) return [];
+
+    const dependencies = [];
+    const children = details.children || [];
+    
+    for (const child of children) {
+      const childId = child.publishedfileid;
+      if (childId && !visited.has(childId)) {
+        dependencies.push(childId);
+        // Recurse to find sub-dependencies
+        const subDeps = await fetchModDependencies(childId, visited);
+        dependencies.push(...subDeps);
+      }
+    }
+
+    return dependencies;
+  } catch (err) {
+    console.error(`Error fetching dependencies for mod ${modId}:`, err.message);
+    return [];
+  }
+}
+
+// 7. GET CONFIG MODS LIST (FETCHING NAMES FROM STEAM)
 app.get('/api/mods', async (req, res) => {
   try {
     const mainCfg = await readSedsConfig();
@@ -691,7 +767,9 @@ app.get('/api/mods', async (req, res) => {
       }
     }
 
-    res.json({ mods: modIds });
+    // Fetch names of mods from Steam
+    const modsWithDetails = await getModDetails(modIds);
+    res.json({ mods: modsWithDetails });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -700,13 +778,16 @@ app.get('/api/mods', async (req, res) => {
 // 8. UPDATE MODS LIST
 app.post('/api/mods', async (req, res) => {
   try {
-    const { mods } = req.body; // Array of IDs
-    if (!Array.isArray(mods)) return res.status(400).json({ error: 'Mods must be an array of IDs' });
+    const { mods } = req.body; // Array of IDs or array of objects { id, title }
+    if (!Array.isArray(mods)) return res.status(400).json({ error: 'Mods must be an array' });
 
     const mainCfg = await readSedsConfig();
     if (!mainCfg) return res.status(404).json({ error: 'Config file not found' });
 
-    const items = mods.map(id => ({
+    // Normalize to simple list of IDs
+    const modIds = mods.map(m => typeof m === 'object' ? m.id : m);
+
+    const items = modIds.map(id => ({
       Id: id,
       Subid: '0'
     }));
@@ -738,8 +819,29 @@ app.post('/api/mods', async (req, res) => {
       }
     }
 
-    addLog(`Mods list updated. Total mods: ${mods.length}`, 'info');
+    addLog(`Mods list updated. Total mods: ${modIds.length}`, 'info');
     res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 8b. RESOLVE MOD DEPENDENCIES
+app.post('/api/mods/resolve', async (req, res) => {
+  const { modId } = req.body;
+  if (!modId) return res.status(400).json({ error: 'modId is required' });
+
+  try {
+    addLog(`Resolving dependencies for mod ID ${modId} from Steam Workshop...`, 'info');
+    const visited = new Set();
+    const dependencies = await fetchModDependencies(modId, visited);
+    
+    // Include the mod itself in the lookups
+    const allIds = [modId, ...dependencies];
+    
+    // Fetch details (Titles)
+    const details = await getModDetails(allIds);
+    res.json({ mods: details });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

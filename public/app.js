@@ -109,6 +109,9 @@ class ServerManagerApp {
 
     // Mods Manager controls
     document.getElementById('btn-add-mod').addEventListener('click', () => this.addMod());
+    document.getElementById('new-mod-id').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); this.addMod(); }
+    });
     document.getElementById('btn-save-mods').addEventListener('click', () => this.saveMods());
 
     // Backups Manager controls
@@ -441,16 +444,17 @@ class ServerManagerApp {
     tbody.innerHTML = '';
 
     if (this.mods.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="3" class="text-center">No mods configured. Use the fields above to add Steam workshop mods!</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="4" class="text-center">No mods configured. Use the fields above to add Steam workshop mods!</td></tr>`;
       return;
     }
 
-    this.mods.forEach((modId, index) => {
+    this.mods.forEach((mod, index) => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td><code>${modId}</code></td>
+        <td><strong>${mod.title || 'Loading Name...'}</strong></td>
+        <td><code>${mod.id}</code></td>
         <td>
-          <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=${modId}" target="_blank" class="table-link">
+          <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=${mod.id}" target="_blank" class="table-link">
             Workshop Link 🔗
           </a>
         </td>
@@ -471,19 +475,77 @@ class ServerManagerApp {
     });
   }
 
-  addMod() {
+  async addMod() {
     const input = document.getElementById('new-mod-id');
+    const button = document.getElementById('btn-add-mod');
+    const statusEl = document.getElementById('mod-add-status');
     const modId = input.value.trim();
     if (!modId) return;
 
-    if (this.mods.includes(modId)) {
-      this.showNotification('This mod ID is already in the list!', 'warning');
+    if (this.mods.some(m => m.id === modId)) {
+      this.showNotification('This mod is already in the list!', 'warning');
       return;
     }
 
-    this.mods.push(modId);
-    input.value = '';
-    this.renderModsTable();
+    input.disabled = true;
+    button.disabled = true;
+    const originalText = button.innerHTML;
+    button.innerHTML = 'Resolving...';
+    statusEl.textContent = `🔍 Fetching mod info and dependency tree from Steam Workshop...`;
+    statusEl.className = 'status-msg';
+
+    try {
+      const response = await fetch('/api/mods/resolve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ modId })
+      });
+      if (!response.ok) throw new Error('Steam details query failed');
+      const data = await response.json();
+      const resolvedMods = data.mods || []; // Array of { id, title }
+
+      if (resolvedMods.length === 0) {
+        throw new Error('Workshop ID not found or item does not exist');
+      }
+
+      let addedCount = 0;
+      const addedNames = [];
+      resolvedMods.forEach(rm => {
+        if (!this.mods.some(m => m.id === rm.id)) {
+          this.mods.push(rm);
+          addedCount++;
+          addedNames.push(rm.title || rm.id);
+        }
+      });
+
+      const mainModName = resolvedMods[0]?.title || modId;
+      if (addedCount > 1) {
+        const depList = addedNames.slice(1).join(', ');
+        statusEl.textContent = `✅ Added '${mainModName}' + ${addedCount - 1} dependencies: ${depList}`;
+        statusEl.className = 'status-msg success';
+        this.showNotification(`Added mod '${mainModName}' and ${addedCount - 1} missing dependencies!`, 'success');
+      } else if (addedCount === 1) {
+        statusEl.textContent = `✅ Added '${mainModName}' (no dependencies found)`;
+        statusEl.className = 'status-msg success';
+        this.showNotification(`Added mod '${mainModName}'!`, 'success');
+      } else {
+        statusEl.textContent = `ℹ️ Mod '${mainModName}' and all its dependencies are already in the list.`;
+        statusEl.className = 'status-msg';
+        this.showNotification(`Mod '${mainModName}' is already fully added.`, 'info');
+      }
+
+      input.value = '';
+      this.renderModsTable();
+    } catch (err) {
+      statusEl.textContent = `❌ Error: ${err.message}`;
+      statusEl.className = 'status-msg error';
+      this.showNotification(`Failed to resolve dependencies: ${err.message}`, 'error');
+      console.error(err);
+    } finally {
+      input.disabled = false;
+      button.disabled = false;
+      button.innerHTML = originalText;
+    }
   }
 
   async saveMods() {
