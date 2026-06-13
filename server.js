@@ -181,38 +181,41 @@ startMonitoring();
 // Sync mods from .cfg into the active world's Sandbox_config.sbc before server start
 async function syncModsToActiveWorld() {
   try {
-    // 1. Read mod IDs from the dedicated server config
+    // Read mod IDs from the dedicated server config (.cfg)
     let modIds = [];
     if (existsSync(CONFIG_FILE_PATH)) {
       const raw = await fs.readFile(CONFIG_FILE_PATH, 'utf-8');
       const modsBlockMatch = raw.match(/<Mods[\s\S]*?<\/Mods>/i);
       if (modsBlockMatch) {
         const modsBlock = modsBlockMatch[0];
-        const newIds = [...modsBlock.matchAll(/<PublishedItemId>(\d+)<\/PublishedItemId>/gi)].map(m => m[1]);
-        const oldIds = [...modsBlock.matchAll(/<Id>(\d+)<\/Id>/gi)].map(m => m[1]);
-        modIds = newIds.length > 0 ? newIds : oldIds;
+        // .cfg uses <Id>, sandbox uses <PublishedItemId>
+        const cfgIds  = [...modsBlock.matchAll(/<Id>(\d+)<\/Id>/gi)].map(m => m[1]);
+        const sbcIds  = [...modsBlock.matchAll(/<PublishedItemId>(\d+)<\/PublishedItemId>/gi)].map(m => m[1]);
+        modIds = cfgIds.length > 0 ? cfgIds : sbcIds;
       }
     }
 
     if (modIds.length === 0) {
-      addLog('No mods configured, skipping mod sync.', 'info');
+      addLog('No mods configured in .cfg — skipping pre-start sync.', 'info');
       return;
     }
 
-    // 2. Find the active world's Sandbox_config.sbc
+    addLog(`Pre-start: found ${modIds.length} mods in .cfg. Syncing to Sandbox_config.sbc...`, 'info');
+
+    // Write mods into the active world's Sandbox_config.sbc
+    // NOTE: The SE server may overwrite this on startup — we also write to .cfg which is the authoritative source.
     const sandbox = await getActiveWorldSandboxConfig();
     if (!sandbox) {
-      addLog('No active world Sandbox_config.sbc found — mods cannot be synced yet.', 'warning');
+      addLog('No active world Sandbox_config.sbc found — mods will be loaded from .cfg by the server.', 'warning');
       return;
     }
 
-    // 3. Write mods into Sandbox_config.sbc
     const updated = await writeModsToXmlFile(sandbox.path, modIds);
     if (updated) {
-      addLog(`✅ Synced ${modIds.length} mod(s) into ${sandbox.path}`, 'info');
+      addLog(`✅ Pre-start sync: ${modIds.length} mod(s) written to Sandbox_config.sbc`, 'info');
     }
   } catch (err) {
-    addLog(`Warning: mod sync failed — ${err.message}`, 'warning');
+    addLog(`Warning: pre-start mod sync failed — ${err.message}`, 'warning');
   }
 }
 
@@ -575,20 +578,24 @@ async function readSedsConfig() {
   return result;
 }
 
-// Build the <Mods>...</Mods> XML block from a list of mod IDs
+// Build the <Mods>...</Mods> block for both SpaceEngineers-Dedicated.cfg and Sandbox_config.sbc
+// Both file types use <PublishedItemId> and <PublishedFileId> tags
 function buildModsXmlBlock(modIds) {
   if (!modIds || modIds.length === 0) {
     return '<Mods />';
   }
-  const items = modIds.map(id =>
-    `      <MyObjectBuilder_WorkshopItem>\n        <PublishedItemId>${id}</PublishedItemId>\n        <PublishedFileId>${id}</PublishedFileId>\n        <Title />\n        <Enabled>true</Enabled>\n      </MyObjectBuilder_WorkshopItem>`
+  const lines = modIds.map(id =>
+    `    <MyObjectBuilder_WorkshopItem>\n      <PublishedItemId>${id}</PublishedItemId>\n      <PublishedFileId>${id}</PublishedFileId>\n      <Title />\n      <Enabled>true</Enabled>\n    </MyObjectBuilder_WorkshopItem>`
   ).join('\n');
-  return `<Mods>\n${items}\n    </Mods>`;
+  return `<Mods>\n${lines}\n  </Mods>`;
 }
 
-// Write mods into a raw XML file via regex block replacement (preserves namespaces)
+// Write mods into a raw XML file via regex block replacement (preserves namespaces and structure)
 async function writeModsToXmlFile(filePath, modIds) {
-  if (!existsSync(filePath)) return false;
+  if (!existsSync(filePath)) {
+    addLog(`writeModsToXmlFile: file not found: ${filePath}`, 'warning');
+    return false;
+  }
   let content = await fs.readFile(filePath, 'utf-8');
 
   const modsBlock = buildModsXmlBlock(modIds);
@@ -599,11 +606,17 @@ async function writeModsToXmlFile(filePath, modIds) {
   if (modsRegex.test(content)) {
     content = content.replace(modsRegex, modsBlock);
   } else {
-    // No Mods tag at all — insert before closing root tag
-    content = content.replace(/(<\/[A-Za-z:]+>\s*)$/, `    ${modsBlock}\n$1`);
+    // No Mods tag — insert before closing root tag
+    content = content.replace(/(<\/[A-Za-z:]+>\s*)$/, `  ${modsBlock}\n$1`);
   }
 
   await fs.writeFile(filePath, content, 'utf-8');
+
+  // Verify the write by reading back and confirming mod count
+  const verify = await fs.readFile(filePath, 'utf-8');
+  const foundIds = [...verify.matchAll(/<PublishedItemId>(\d+)<\/PublishedItemId>/gi)].map(m => m[1]);
+  addLog(`writeModsToXmlFile: wrote ${modIds.length} mods, verified ${foundIds.length} in ${path.basename(filePath)}`, 'info');
+
   return true;
 }
 
@@ -977,24 +990,21 @@ app.post('/api/mods', async (req, res) => {
     // Normalize to simple list of string IDs
     const modIds = mods.map(m => (typeof m === 'object' ? String(m.id) : String(m)));
 
-    // 1. Write to the dedicated server .cfg file
-    const cfgUpdated = await writeModsToXmlFile(CONFIG_FILE_PATH, modIds);
+    // 1. Write to SpaceEngineers-Dedicated.cfg using the .cfg schema (<Id>/<Subid>)
+    //    This is the authoritative source that the SE server reads on startup
+    const cfgUpdated = await writeModsToXmlFile(CONFIG_FILE_PATH, modIds, 'cfg');
     if (!cfgUpdated) {
-      // Config file doesn't exist yet — try to create it with just mods
-      addLog('SpaceEngineers-Dedicated.cfg not found, mods saved for next config write.', 'warning');
-    } else {
-      addLog(`Mods written to SpaceEngineers-Dedicated.cfg (${modIds.length} mods)`, 'info');
+      addLog('SpaceEngineers-Dedicated.cfg not found! Mods cannot be saved.', 'stderr');
+      return res.status(404).json({ error: 'SpaceEngineers-Dedicated.cfg not found. Run the server at least once first.' });
     }
 
-    // 2. Sync to Sandbox_config.sbc of the active world
+    // 2. Also write to Sandbox_config.sbc using the sandbox schema (<PublishedItemId>)
+    //    The server may overwrite this on start, but writing it now ensures consistency.
     const sandbox = await getActiveWorldSandboxConfig();
     if (sandbox) {
-      const sandboxUpdated = await writeModsToXmlFile(sandbox.path, modIds);
-      if (sandboxUpdated) {
-        addLog(`Mods synchronized to active world Sandbox_config.sbc (${modIds.length} mods)`, 'info');
-      }
+      await writeModsToXmlFile(sandbox.path, modIds);
     } else {
-      addLog('No active world found — mods will be applied when a world is loaded.', 'warning');
+      addLog('No active world Sandbox_config.sbc found \u2014 mods saved to .cfg only.', 'warning');
     }
 
     res.json({ success: true, count: modIds.length });
