@@ -363,8 +363,8 @@ function startLogFileTail() {
 
   // Candidate log locations (SE may write to root or Logs/ subdirectory)
   const candidatePaths = [
-    path.join(serverDataPath, 'SpaceEngineersDedicated.log'),
-    path.join(serverDataPath, 'Logs', 'SpaceEngineersDedicated.log'),
+    path.join(serverDataPath, 'SpaceEngineers-Dedicated.log'),
+    path.join(serverDataPath, 'Logs', 'SpaceEngineers-Dedicated.log'),
   ];
 
   async function findCurrentLogFile() {

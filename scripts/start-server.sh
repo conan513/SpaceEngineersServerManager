@@ -4,8 +4,8 @@
 
 set -euo pipefail
 
-info() { echo -e "\e[34m[INFO]\e[0m $*"; }
-error() { echo -e "\e[31m[ERROR]\e[0m $*"; exit 1; }
+info() { printf "\e[34m[INFO]\e[0m %s\n" "$*"; }
+error() { printf "\e[31m[ERROR]\e[0m %s\n" "$*"; exit 1; }
 
 # Default directory definitions
 BASE_DIR="$HOME/.local/share/se-server-manager"
@@ -42,5 +42,4 @@ cd "$SERVER_FILES/DedicatedServer64"
 info "Starting Space Engineers Dedicated Server inside xvfb-run..."
 # We run inside xvfb-run to provide a virtual X server, which Wine/Direct3D components require
 # -console runs it in console/headless mode
-# -ignorelastsession prevents it from crashing/acting up if it had an unclean exit last time
-exec xvfb-run -a wine SpaceEngineersDedicated.exe -console -ignorelastsession -path "$WINE_DATA_PATH"
+exec xvfb-run -a wine SpaceEngineersDedicated.exe -console -path "$WINE_DATA_PATH"
