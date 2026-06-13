@@ -3,7 +3,8 @@ import fs from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
 import os from 'os';
-import { spawn } from 'child_process';
+import { spawn, exec } from 'child_process';
+import util from 'util';
 import xml2js from 'xml2js';
 import AdmZip from 'adm-zip';
 import { fileURLToPath } from 'url';
@@ -34,6 +35,21 @@ function resolvePath(p) {
     return path.join(os.homedir(), p.slice(1));
   }
   return path.resolve(p);
+}
+
+const execAsync = util.promisify(exec);
+
+async function getWinePath(linuxPath) {
+  try {
+    // Run winepath inside a shell command to resolve Windows-style mapped drive path
+    const { stdout } = await execAsync(`winepath -w "${linuxPath}"`);
+    return stdout.trim();
+  } catch (err) {
+    // Fallback if winepath fails
+    const username = os.userInfo().username;
+    const absolute = path.resolve(linuxPath);
+    return `Z:${absolute.replace(/\//g, '\\')}`;
+  }
 }
 
 // Load configuration
@@ -821,6 +837,89 @@ app.post('/api/manager-config', async (req, res) => {
     await saveConfig();
     startAutoBackupSchedule(); // adjust backup timer
     res.json({ success: true, config });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 14. GET SCENARIOS LIST
+app.get('/api/scenarios', async (req, res) => {
+  try {
+    const worldsPath = path.join(serverFilesPath, 'Content', 'CustomWorlds');
+    if (!existsSync(worldsPath)) {
+      return res.json({ scenarios: [] });
+    }
+    const files = await fs.readdir(worldsPath);
+    const scenarios = [];
+    for (const file of files) {
+      const stat = await fs.stat(path.join(worldsPath, file));
+      if (stat.isDirectory()) {
+        scenarios.push(file);
+      }
+    }
+    res.json({ scenarios });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 15. CREATE NEW WORLD (CONFIG ONLY - SEDS GENERATES ON BOOT)
+app.post('/api/worlds/create', async (req, res) => {
+  if (serverStatus !== 'STOPPED') {
+    return res.status(400).json({ error: 'Server must be stopped to create a new world' });
+  }
+
+  const { worldName, scenarioName } = req.body;
+  if (!worldName || !scenarioName) {
+    return res.status(400).json({ error: 'worldName and scenarioName are required' });
+  }
+
+  try {
+    const mainCfg = await readSedsConfig();
+    if (!mainCfg) return res.status(404).json({ error: 'Config file not found' });
+
+    const d = mainCfg.MyConfigDedicated;
+    const scenarioLinuxPath = path.join(serverFilesPath, 'Content', 'CustomWorlds', scenarioName);
+    const wineScenarioPath = await getWinePath(scenarioLinuxPath);
+
+    d.WorldName = worldName;
+    d.LoadWorld = ''; // clear loadWorld to trigger generation
+    d.PremadeCheckpointPath = wineScenarioPath;
+
+    await writeSedsConfig(mainCfg);
+    addLog(`Configured server to generate new world '${worldName}' using scenario '${scenarioName}' on next launch.`, 'info');
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 16. ACTIVATE EXISTING WORLD
+app.post('/api/worlds/activate', async (req, res) => {
+  if (serverStatus !== 'STOPPED') {
+    return res.status(400).json({ error: 'Server must be stopped to load an existing world' });
+  }
+
+  const { worldName } = req.body;
+  if (!worldName) {
+    return res.status(400).json({ error: 'worldName is required' });
+  }
+
+  try {
+    const mainCfg = await readSedsConfig();
+    if (!mainCfg) return res.status(404).json({ error: 'Config file not found' });
+
+    const d = mainCfg.MyConfigDedicated;
+    const worldLinuxPath = path.join(serverDataPath, 'Saves', worldName);
+    const wineWorldPath = await getWinePath(worldLinuxPath);
+
+    d.WorldName = worldName;
+    d.LoadWorld = wineWorldPath;
+    d.PremadeCheckpointPath = ''; // clear starting scenario since we are loading an existing world
+
+    await writeSedsConfig(mainCfg);
+    addLog(`Activated existing world '${worldName}' for next launch.`, 'info');
+    res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

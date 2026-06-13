@@ -349,19 +349,41 @@
                     <tr>
                       <th>World Folder Name</th>
                       <th>Status</th>
+                      <th class="actions-col">Action</th>
                     </tr>
                   </thead>
                   <tbody id="worlds-table-body">
                     <tr>
-                      <td colspan="2" class="text-center">No worlds found. Start the server to generate one!</td>
+                      <td colspan="3" class="text-center">No worlds found. Start the server to generate one!</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
             </div>
 
+            <!-- Create New World -->
+            <div class="glass-card">
+              <h3>Create New World</h3>
+              <p class="description">Generate a new world from a starting scenario template.</p>
+              <form id="create-world-form" onsubmit="event.preventDefault();">
+                <div class="form-group">
+                  <label for="new-world-name">New World Name</label>
+                  <input type="text" id="new-world-name" placeholder="e.g. My Survival World" required>
+                </div>
+                <div class="form-group margin-top-lg">
+                  <label for="new-world-scenario">Starting Scenario</label>
+                  <select id="new-world-scenario">
+                    <option value="Star System">Star System</option>
+                  </select>
+                </div>
+                <button type="submit" id="btn-create-world" class="btn btn-primary margin-top-lg" style="width: 100%;">
+                  <span>🚀</span> Generate World
+                </button>
+              </form>
+            </div>
+
             <!-- Backups Manager -->
-            <div class="glass-card span-2">
+            <div class="glass-card span-3">
               <div class="card-header-actions">
                 <h3>System Backup Archives</h3>
                 <button id="btn-create-backup" class="btn btn-primary btn-sm">

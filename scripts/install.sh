@@ -131,7 +131,7 @@ if [ ! -f "$DEFAULT_CFG" ]; then
   <WorldName>Default World</WorldName>
   <PauseGameWhenEmpty>true</PauseGameWhenEmpty>
   <IgnoreLastSession>false</IgnoreLastSession>
-  <PremadeCheckpointPath />
+  <PremadeCheckpointPath>Content\CustomWorlds\Star System</PremadeCheckpointPath>
   <ServerAdminUUIDs />
   <Banned />
   <Mods />

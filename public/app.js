@@ -23,6 +23,7 @@ class ServerManagerApp {
     this.loadConfig();
     this.loadBackups();
     this.loadMods();
+    this.loadScenarios();
   }
 
   // Show status popup notifications
@@ -118,6 +119,12 @@ class ServerManagerApp {
     
     document.getElementById('btn-download-logs').addEventListener('click', () => {
       window.open('/api/logs/full', '_blank');
+    });
+
+    // World Creator form
+    document.getElementById('create-world-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      this.createWorld();
     });
   }
 
@@ -527,7 +534,7 @@ class ServerManagerApp {
     tbody.innerHTML = '';
 
     if (!worlds || worlds.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="2" class="text-center">No world directories found. Start the server to generate a default world.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="3" class="text-center">No world directories found. Start the server to generate a default world.</td></tr>`;
       return;
     }
 
@@ -541,9 +548,113 @@ class ServerManagerApp {
             ${isActive ? '● Active' : '○ Dormant'}
           </span>
         </td>
+        <td class="actions-col">
+          ${isActive 
+            ? '<span class="status-msg success">Currently Loaded</span>' 
+            : `<button class="btn btn-sm btn-outline btn-activate-world" data-world="${world}">Activate</button>`
+          }
+        </td>
       `;
       tbody.appendChild(tr);
     });
+
+    // Bind activate buttons
+    document.querySelectorAll('.btn-activate-world').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const world = e.target.getAttribute('data-world');
+        this.activateWorld(world);
+      });
+    });
+  }
+
+  async loadScenarios() {
+    try {
+      const response = await fetch('/api/scenarios');
+      if (!response.ok) throw new Error('Failed to load starting scenarios');
+      const data = await response.json();
+      
+      const select = document.getElementById('new-world-scenario');
+      select.innerHTML = '';
+      
+      if (data.scenarios && data.scenarios.length > 0) {
+        data.scenarios.forEach(sc => {
+          const opt = document.createElement('option');
+          opt.value = sc;
+          opt.textContent = sc;
+          select.appendChild(opt);
+        });
+      } else {
+        const opt = document.createElement('option');
+        opt.value = "Star System";
+        opt.textContent = "Star System (Default)";
+        select.appendChild(opt);
+      }
+    } catch (err) {
+      console.error('Error loading scenarios:', err);
+    }
+  }
+
+  async activateWorld(worldName) {
+    if (this.status !== 'STOPPED') {
+      this.showNotification('You must STOP the server before changing worlds!', 'error');
+      alert('Error: Please stop the server before activating a dormant world.');
+      return;
+    }
+
+    try {
+      this.showNotification(`Activating world: ${worldName}...`, 'info');
+      const response = await fetch('/api/worlds/activate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ worldName })
+      });
+      const data = await response.json();
+      if (data.success) {
+        this.showNotification(`World '${worldName}' activated!`, 'success');
+        this.fetchStatus();
+        this.loadConfig();
+        this.loadBackups();
+      } else {
+        throw new Error(data.error || 'Activation failed');
+      }
+    } catch (err) {
+      this.showNotification(`Failed to activate world: ${err.message}`, 'error');
+    }
+  }
+
+  async createWorld() {
+    if (this.status !== 'STOPPED') {
+      this.showNotification('You must STOP the server before generating a new world!', 'error');
+      alert('Error: Please stop the server before configuring a new world.');
+      return;
+    }
+
+    const nameInput = document.getElementById('new-world-name');
+    const worldName = nameInput.value.trim();
+    const scenarioName = document.getElementById('new-world-scenario').value;
+
+    if (!worldName) return;
+
+    try {
+      this.showNotification(`Configuring new world '${worldName}'...`, 'info');
+      const response = await fetch('/api/worlds/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ worldName, scenarioName })
+      });
+      const data = await response.json();
+      if (data.success) {
+        this.showNotification(`World configured! Click Start Server to generate it.`, 'success');
+        nameInput.value = '';
+        this.fetchStatus();
+        this.loadConfig();
+        this.loadBackups();
+      } else {
+        throw new Error(data.error || 'World creation failed');
+      }
+    } catch (err) {
+      this.showNotification(`Failed to configure world: ${err.message}`, 'error');
+    }
   }
 
   renderBackupsTable() {
