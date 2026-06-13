@@ -80,6 +80,7 @@ const winePrefixPath = resolvePath(config.winePrefixPath);
 const serverFilesPath = resolvePath(config.serverFilesPath);
 const serverDataPath = resolvePath(config.serverDataPath);
 const backupsPath = resolvePath(config.backupsPath);
+const CONFIG_FILE_PATH = path.join(serverDataPath, 'SpaceEngineers-Dedicated.cfg');
 
 // Ensure essential directories exist
 await fs.mkdir(serverDataPath, { recursive: true });
@@ -95,6 +96,9 @@ let logHistory = [];
 let logClients = [];
 let resourceInterval = null;
 let autoBackupInterval = null;
+let logFileTailProcess = null;
+let logFileLastSize = 0;
+let logFilePollInterval = null;
 
 // Add logs to memory and stream to SSE clients
 function addLog(text, type = 'info') {
@@ -174,8 +178,46 @@ function startMonitoring() {
 }
 startMonitoring();
 
+// Sync mods from .cfg into the active world's Sandbox_config.sbc before server start
+async function syncModsToActiveWorld() {
+  try {
+    // 1. Read mod IDs from the dedicated server config
+    let modIds = [];
+    if (existsSync(CONFIG_FILE_PATH)) {
+      const raw = await fs.readFile(CONFIG_FILE_PATH, 'utf-8');
+      const modsBlockMatch = raw.match(/<Mods[\s\S]*?<\/Mods>/i);
+      if (modsBlockMatch) {
+        const modsBlock = modsBlockMatch[0];
+        const newIds = [...modsBlock.matchAll(/<PublishedItemId>(\d+)<\/PublishedItemId>/gi)].map(m => m[1]);
+        const oldIds = [...modsBlock.matchAll(/<Id>(\d+)<\/Id>/gi)].map(m => m[1]);
+        modIds = newIds.length > 0 ? newIds : oldIds;
+      }
+    }
+
+    if (modIds.length === 0) {
+      addLog('No mods configured, skipping mod sync.', 'info');
+      return;
+    }
+
+    // 2. Find the active world's Sandbox_config.sbc
+    const sandbox = await getActiveWorldSandboxConfig();
+    if (!sandbox) {
+      addLog('No active world Sandbox_config.sbc found — mods cannot be synced yet.', 'warning');
+      return;
+    }
+
+    // 3. Write mods into Sandbox_config.sbc
+    const updated = await writeModsToXmlFile(sandbox.path, modIds);
+    if (updated) {
+      addLog(`✅ Synced ${modIds.length} mod(s) into ${sandbox.path}`, 'info');
+    }
+  } catch (err) {
+    addLog(`Warning: mod sync failed — ${err.message}`, 'warning');
+  }
+}
+
 // Handle server startup
-function startServer() {
+async function startServer() {
   if (sedsProcess || serverStatus === 'RUNNING' || serverStatus === 'STARTING') {
     addLog('Server is already running or starting.', 'warning');
     return false;
@@ -184,6 +226,9 @@ function startServer() {
   serverStatus = 'STARTING';
   serverUptimeStart = Date.now();
   addLog('Starting Space Engineers dedicated server...', 'info');
+
+  // Sync mods into the active world before launching
+  await syncModsToActiveWorld();
 
   const startScript = path.join(__dirname, 'scripts', 'start-server.sh');
   
@@ -229,16 +274,122 @@ function startServer() {
     }
   }, 20000);
 
+  // Start tailing the game log file to stream real SEDS output
+  startLogFileTail();
+
   return true;
 }
 
 // Handle server exit cleanup
 function handleServerExit(code) {
+  stopLogFileTail();
   sedsProcess = null;
   serverStatus = 'STOPPED';
   serverUptimeStart = null;
   resourceUsage = { cpu: 0, memory: 0 };
   addLog(`Server stopped. (Exit code: ${code})`, 'info');
+}
+
+// Start tailing the game log file
+function startLogFileTail() {
+  stopLogFileTail(); // Clean any existing watcher
+
+  addLog(`Starting log file watcher in: ${serverDataPath}`, 'info');
+
+  // Reset position tracker - we'll seek to end so we don't re-read old log
+  logFileLastSize = 0;
+  let resolvedLogPath = null; // Will be determined on first successful find
+
+  // Candidate log locations (SE may write to root or Logs/ subdirectory)
+  const candidatePaths = [
+    path.join(serverDataPath, 'SpaceEngineersDedicated.log'),
+    path.join(serverDataPath, 'Logs', 'SpaceEngineersDedicated.log'),
+  ];
+
+  async function findCurrentLogFile() {
+    let best = null;
+    let bestMtime = 0;
+    for (const candidate of candidatePaths) {
+      try {
+        const stat = await fs.stat(candidate);
+        if (stat.mtimeMs > bestMtime) {
+          bestMtime = stat.mtimeMs;
+          best = candidate;
+        }
+      } catch { /* file doesn't exist yet */ }
+    }
+    return best;
+  }
+
+  // Poll every 500ms for new content in the log file
+  logFilePollInterval = setInterval(async () => {
+    try {
+      // Resolve the log file path dynamically if not found yet
+      if (!resolvedLogPath) {
+        resolvedLogPath = await findCurrentLogFile();
+        if (!resolvedLogPath) return; // Log file not created yet
+        addLog(`Game log file found: ${resolvedLogPath}`, 'info');
+        const stat = await fs.stat(resolvedLogPath);
+        logFileLastSize = stat.size; // Start reading from current end
+        return;
+      }
+
+      const stat = await fs.stat(resolvedLogPath);
+      const currentSize = stat.size;
+
+      if (currentSize <= logFileLastSize) return;
+
+      // Read only the new bytes appended to the file
+      const fd = await fs.open(resolvedLogPath, 'r');
+      const bytesToRead = currentSize - logFileLastSize;
+      const buffer = Buffer.alloc(bytesToRead);
+      await fd.read(buffer, 0, bytesToRead, logFileLastSize);
+      await fd.close();
+
+      logFileLastSize = currentSize;
+
+      const newContent = buffer.toString('utf-8');
+      const lines = newContent.split('\n');
+      lines.forEach(line => {
+        const trimmed = line.trim();
+        if (!trimmed) return;
+
+        // Detect server readiness from log
+        if (trimmed.includes('Server successfully started') || trimmed.includes('MySandboxGame.Initialize() - END') || trimmed.includes('Game ready')) {
+          if (serverStatus === 'STARTING') {
+            serverStatus = 'RUNNING';
+            addLog('✅ Server is now RUNNING (detected from game log).', 'info');
+          }
+        }
+
+        // Detect crash/shutdown from log
+        if (trimmed.includes('Logging off Steam') || trimmed.includes('Shutting down server')) {
+          if (serverStatus === 'RUNNING' || serverStatus === 'STARTING') {
+            addLog('⚠️ Shutdown detected in game log.', 'warning');
+          }
+        }
+
+        addLog(trimmed, 'stdout');
+      });
+    } catch (err) {
+      // If log file was rotated/replaced, reset so we re-discover it next poll
+      if (err.code === 'ENOENT') {
+        resolvedLogPath = null;
+        logFileLastSize = 0;
+      }
+      // Ignore other transient read errors
+    }
+  }, 500);
+}
+
+
+// Stop tailing the game log file
+function stopLogFileTail() {
+  if (logFilePollInterval) {
+    clearInterval(logFilePollInterval);
+    logFilePollInterval = null;
+  }
+  logFileLastSize = 0;
 }
 
 // Stop server
@@ -411,8 +562,8 @@ function startAutoBackupSchedule() {
 }
 startAutoBackupSchedule();
 
+
 // Configuration Parsing & Merging
-const CONFIG_FILE_PATH = path.join(serverDataPath, 'SpaceEngineers-Dedicated.cfg');
 
 async function readSedsConfig() {
   if (!existsSync(CONFIG_FILE_PATH)) {
@@ -424,8 +575,45 @@ async function readSedsConfig() {
   return result;
 }
 
+// Build the <Mods>...</Mods> XML block from a list of mod IDs
+function buildModsXmlBlock(modIds) {
+  if (!modIds || modIds.length === 0) {
+    return '<Mods />';
+  }
+  const items = modIds.map(id =>
+    `      <MyObjectBuilder_WorkshopItem>\n        <PublishedItemId>${id}</PublishedItemId>\n        <PublishedFileId>${id}</PublishedFileId>\n        <Title />\n        <Enabled>true</Enabled>\n      </MyObjectBuilder_WorkshopItem>`
+  ).join('\n');
+  return `<Mods>\n${items}\n    </Mods>`;
+}
+
+// Write mods into a raw XML file via regex block replacement (preserves namespaces)
+async function writeModsToXmlFile(filePath, modIds) {
+  if (!existsSync(filePath)) return false;
+  let content = await fs.readFile(filePath, 'utf-8');
+
+  const modsBlock = buildModsXmlBlock(modIds);
+
+  // Single regex: matches <Mods /> OR <Mods>...</Mods> (including multiline)
+  const modsRegex = /<Mods\s*\/>|<Mods[\s\S]*?<\/Mods>/i;
+
+  if (modsRegex.test(content)) {
+    content = content.replace(modsRegex, modsBlock);
+  } else {
+    // No Mods tag at all — insert before closing root tag
+    content = content.replace(/(<\/[A-Za-z:]+>\s*)$/, `    ${modsBlock}\n$1`);
+  }
+
+  await fs.writeFile(filePath, content, 'utf-8');
+  return true;
+}
+
 async function writeSedsConfig(parsedData) {
-  const builder = new xml2js.Builder();
+  // Use xml2js Builder but preserve original file structure for mods.
+  // The builder is only used for non-mods fields (names, ports, etc.).
+  const builder = new xml2js.Builder({
+    xmldec: { version: '1.0', encoding: 'UTF-8' },
+    renderOpts: { pretty: true, indent: '  ', newline: '\n' }
+  });
   const xml = builder.buildObject(parsedData);
   await fs.writeFile(CONFIG_FILE_PATH, xml, 'utf-8');
 }
@@ -508,7 +696,7 @@ app.get('/api/status', async (req, res) => {
 app.post('/api/control', async (req, res) => {
   const { action } = req.body;
   if (action === 'start') {
-    const success = startServer();
+    const success = await startServer();
     return res.json({ success, status: serverStatus });
   } else if (action === 'stop') {
     const success = await stopServer();
@@ -518,7 +706,7 @@ app.post('/api/control', async (req, res) => {
     while (serverStatus !== 'STOPPED') {
       await new Promise(r => setTimeout(r, 1000));
     }
-    const success = startServer();
+    const success = await startServer();
     return res.json({ success, status: serverStatus });
   } else if (action === 'update') {
     updateGameServer(); // runs in background
@@ -753,17 +941,22 @@ async function fetchModDependencies(modId, visited = new Set()) {
 // 7. GET CONFIG MODS LIST (FETCHING NAMES FROM STEAM)
 app.get('/api/mods', async (req, res) => {
   try {
-    const mainCfg = await readSedsConfig();
-    if (!mainCfg) return res.status(404).json({ error: 'Config file not found' });
-
-    const modsTag = mainCfg.MyConfigDedicated?.Mods;
+    // Extract mod IDs directly from raw XML to avoid xml2js schema mismatches
     let modIds = [];
-    if (modsTag && modsTag.MyObjectBuilder_WorkshopItem) {
-      const items = modsTag.MyObjectBuilder_WorkshopItem;
-      if (Array.isArray(items)) {
-        modIds = items.map(item => item.Id);
-      } else if (items.Id) {
-        modIds = [items.Id];
+
+    if (existsSync(CONFIG_FILE_PATH)) {
+      const raw = await fs.readFile(CONFIG_FILE_PATH, 'utf-8');
+
+      // Extract <Mods>...</Mods> block first
+      const modsBlockMatch = raw.match(/<Mods[\s\S]*?<\/Mods>/i);
+      if (modsBlockMatch) {
+        const modsBlock = modsBlockMatch[0];
+        // Try new schema: <PublishedItemId> or <PublishedFileId>
+        const newIds = [...modsBlock.matchAll(/<PublishedItemId>(\d+)<\/PublishedItemId>/gi)].map(m => m[1]);
+        // Try old schema: <Id>
+        const oldIds = [...modsBlock.matchAll(/<Id>(\d+)<\/Id>/gi)].map(m => m[1]);
+
+        modIds = newIds.length > 0 ? newIds : oldIds;
       }
     }
 
@@ -781,47 +974,32 @@ app.post('/api/mods', async (req, res) => {
     const { mods } = req.body; // Array of IDs or array of objects { id, title }
     if (!Array.isArray(mods)) return res.status(400).json({ error: 'Mods must be an array' });
 
-    const mainCfg = await readSedsConfig();
-    if (!mainCfg) return res.status(404).json({ error: 'Config file not found' });
+    // Normalize to simple list of string IDs
+    const modIds = mods.map(m => (typeof m === 'object' ? String(m.id) : String(m)));
 
-    // Normalize to simple list of IDs
-    const modIds = mods.map(m => typeof m === 'object' ? m.id : m);
-
-    const items = modIds.map(id => ({
-      Id: id,
-      Subid: '0'
-    }));
-
-    if (!mainCfg.MyConfigDedicated.Mods) {
-      mainCfg.MyConfigDedicated.Mods = {};
+    // 1. Write to the dedicated server .cfg file
+    const cfgUpdated = await writeModsToXmlFile(CONFIG_FILE_PATH, modIds);
+    if (!cfgUpdated) {
+      // Config file doesn't exist yet — try to create it with just mods
+      addLog('SpaceEngineers-Dedicated.cfg not found, mods saved for next config write.', 'warning');
+    } else {
+      addLog(`Mods written to SpaceEngineers-Dedicated.cfg (${modIds.length} mods)`, 'info');
     }
-    mainCfg.MyConfigDedicated.Mods = {
-      MyObjectBuilder_WorkshopItem: items
-    };
 
-    await writeSedsConfig(mainCfg);
-
-    // Sync to Sandbox_config.sbc of active world if it exists
+    // 2. Sync to Sandbox_config.sbc of the active world
     const sandbox = await getActiveWorldSandboxConfig();
     if (sandbox) {
-      const sbc = sandbox.data;
-      if (sbc && sbc.MySandboxGameConfig) {
-        if (!sbc.MySandboxGameConfig.Mods) {
-          sbc.MySandboxGameConfig.Mods = {};
-        }
-        sbc.MySandboxGameConfig.Mods = {
-          MyObjectBuilder_WorkshopItem: items
-        };
-        const builder = new xml2js.Builder();
-        const xml = builder.buildObject(sbc);
-        await fs.writeFile(sandbox.path, xml, 'utf-8');
-        addLog('Synchronized mods to active world Sandbox_config.sbc.', 'info');
+      const sandboxUpdated = await writeModsToXmlFile(sandbox.path, modIds);
+      if (sandboxUpdated) {
+        addLog(`Mods synchronized to active world Sandbox_config.sbc (${modIds.length} mods)`, 'info');
       }
+    } else {
+      addLog('No active world found — mods will be applied when a world is loaded.', 'warning');
     }
 
-    addLog(`Mods list updated. Total mods: ${modIds.length}`, 'info');
-    res.json({ success: true });
+    res.json({ success: true, count: modIds.length });
   } catch (err) {
+    addLog(`Error saving mods: ${err.message}`, 'stderr');
     res.status(500).json({ error: err.message });
   }
 });
