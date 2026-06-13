@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Space Engineers Server Manager</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚀</text></svg>">
+</head>
+<body>
+  <div class="app-container">
+    
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <span class="brand-icon">☄️</span>
+        <div class="brand-text">
+          <h1>SE Dedicated</h1>
+          <p>Server Manager</p>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <button class="nav-btn active" data-tab="dashboard">
+          <span class="nav-icon">📊</span> Dashboard
+        </button>
+        <button class="nav-btn" data-tab="settings">
+          <span class="nav-icon">⚙️</span> Game Settings
+        </button>
+        <button class="nav-btn" data-tab="mods">
+          <span class="nav-icon">🧩</span> Mods Manager
+        </button>
+        <button class="nav-btn" data-tab="backups">
+          <span class="nav-icon">💾</span> Saves & Backups
+        </button>
+        <button class="nav-btn" data-tab="console">
+          <span class="nav-icon">📟</span> Live Console
+        </button>
+      </nav>
+      <div class="sidebar-footer">
+        <p>Running under User Account</p>
+        <span id="system-user">Arch Linux</span>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      
+      <!-- Top Header / Quick Stats -->
+      <header class="header">
+        <div class="header-title">
+          <h2 id="current-tab-title">Dashboard</h2>
+          <p id="current-tab-subtitle">Real-time server monitoring and control</p>
+        </div>
+        <div class="quick-stats">
+          <div class="quick-stat-card">
+            <span class="stat-icon">🔋</span>
+            <div class="stat-info">
+              <span class="stat-label">Server Status</span>
+              <span id="quick-status" class="stat-value status-stopped">STOPPED</span>
+            </div>
+          </div>
+          <div class="quick-stat-card">
+            <span class="stat-icon">💻</span>
+            <div class="stat-info">
+              <span class="stat-label">CPU Usage</span>
+              <span id="quick-cpu" class="stat-value">0%</span>
+            </div>
+          </div>
+          <div class="quick-stat-card">
+            <span class="stat-icon">🧠</span>
+            <div class="stat-info">
+              <span class="stat-label">Memory</span>
+              <span id="quick-mem" class="stat-value">0 MB</span>
+            </div>
+          </div>
+          <div class="quick-stat-card">
+            <span class="stat-icon">⏱️</span>
+            <div class="stat-info">
+              <span class="stat-label">Uptime</span>
+              <span id="quick-uptime" class="stat-value">00:00:00</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Content Panels -->
+      <div class="content-body">
+
+        <!-- 1. DASHBOARD TAB -->
+        <section id="tab-dashboard" class="tab-panel active">
+          <div class="grid-layout">
+            
+            <!-- Server Control Card -->
+            <div class="glass-card control-card span-2">
+              <h3>System Control Console</h3>
+              <p>Manage the lifecycle of the Space Engineers server instance.</p>
+              <div class="control-actions">
+                <button id="btn-start" class="btn btn-success">
+                  <span class="btn-icon">▶️</span> Start Server
+                </button>
+                <button id="btn-stop" class="btn btn-danger" disabled>
+                  <span class="btn-icon">⏹️</span> Stop Server
+                </button>
+                <button id="btn-restart" class="btn btn-warning" disabled>
+                  <span class="btn-icon">🔄</span> Restart
+                </button>
+                <button id="btn-update" class="btn btn-primary">
+                  <span class="btn-icon">📥</span> Update Game (SteamCMD)
+                </button>
+              </div>
+              <div class="server-active-world-info">
+                <span>Active World:</span>
+                <strong id="active-world-name">Default World</strong>
+              </div>
+            </div>
+
+            <!-- Real-time Status Card -->
+            <div class="glass-card monitoring-card">
+              <h3>Status Overview</h3>
+              <div class="monitoring-meter-group">
+                <div class="meter-box">
+                  <div class="meter-ring">
+                    <svg viewBox="0 0 36 36" class="circular-chart cyan">
+                      <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                      <path id="cpu-ring" class="circle" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                      <text x="18" y="20.35" class="percentage" id="cpu-ring-text">0%</text>
+                    </svg>
+                  </div>
+                  <span class="meter-label">CPU LOAD</span>
+                </div>
+                <div class="meter-box">
+                  <div class="meter-ring">
+                    <svg viewBox="0 0 36 36" class="circular-chart purple">
+                      <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                      <path id="mem-ring" class="circle" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                      <text x="18" y="20.35" class="percentage" id="mem-ring-text">0%</text>
+                    </svg>
+                  </div>
+                  <span class="meter-label">RAM LOAD (max 8GB)</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Log Summary Card -->
+            <div class="glass-card log-summary-card span-3">
+              <div class="card-header-actions">
+                <h3>Live Activity Feed</h3>
+                <button class="btn btn-sm btn-outline" onclick="window.app.switchTab('console')">View Full Console</button>
+              </div>
+              <div class="mini-console" id="mini-console">
+                <div class="console-line system">[SYSTEM] Welcome to Space Engineers Dedicated Server Manager.</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 2. GAME SETTINGS TAB -->
+        <section id="tab-settings" class="tab-panel">
+          <div class="glass-card">
+            <h3>Configuration Editor</h3>
+            <p class="description">Modifies both <code>SpaceEngineers-Dedicated.cfg</code> and the active world's <code>Sandbox_config.sbc</code> files.</p>
+            
+            <form id="config-form" class="config-form">
+              <div class="form-grid">
+                
+                <!-- General Section -->
+                <div class="form-section span-2">
+                  <h4>General Server Properties</h4>
+                  <div class="inputs-row">
+                    <div class="form-group">
+                      <label for="cfg-serverName">Server Name</label>
+                      <input type="text" id="cfg-serverName" required>
+                    </div>
+                    <div class="form-group">
+                      <label for="cfg-port">Port</label>
+                      <input type="number" id="cfg-port" required>
+                    </div>
+                  </div>
+                  <div class="inputs-row">
+                    <div class="form-group">
+                      <label for="cfg-ip">Bind IP Address</label>
+                      <input type="text" id="cfg-ip" required>
+                    </div>
+                    <div class="form-group">
+                      <label for="cfg-worldName">Active World Folder</label>
+                      <select id="cfg-worldName">
+                        <option value="Default World">Default World</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="inputs-row">
+                    <div class="form-group checkbox-group">
+                      <input type="checkbox" id="cfg-pauseGameWhenEmpty">
+                      <label for="cfg-pauseGameWhenEmpty">Pause game when empty</label>
+                    </div>
+                    <div class="form-group checkbox-group">
+                      <input type="checkbox" id="cfg-ignoreLastSession">
+                      <label for="cfg-ignoreLastSession">Ignore last session (fresh boot)</label>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Session Settings Section -->
+                <div class="form-section span-2">
+                  <h4>Session & Gameplay Multipliers</h4>
+                  <div class="inputs-row">
+                    <div class="form-group">
+                      <label for="cfg-gameMode">Game Mode</label>
+                      <select id="cfg-gameMode">
+                        <option value="Survival">Survival</option>
+                        <option value="Creative">Creative</option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label for="cfg-maxPlayers">Max Players</label>
+                      <input type="number" id="cfg-maxPlayers" min="1" max="64">
+                    </div>
+                  </div>
+                  
+                  <div class="inputs-row">
+                    <div class="form-group">
+                      <label for="cfg-inventorySizeMultiplier">Inventory Multiplier</label>
+                      <input type="number" id="cfg-inventorySizeMultiplier" step="0.1" min="1">
+                    </div>
+                    <div class="form-group">
+                      <label for="cfg-assemblerSpeedMultiplier">Assembler Speed Multiplier</label>
+                      <input type="number" id="cfg-assemblerSpeedMultiplier" step="0.1" min="1">
+                    </div>
+                  </div>
+
+                  <div class="inputs-row">
+                    <div class="form-group">
+                      <label for="cfg-refinerySpeedMultiplier">Refinery Speed Multiplier</label>
+                      <input type="number" id="cfg-refinerySpeedMultiplier" step="0.1" min="1">
+                    </div>
+                    <div class="form-group">
+                      <label for="cfg-welderSpeedMultiplier">Welder Speed Multiplier</label>
+                      <input type="number" id="cfg-welderSpeedMultiplier" step="0.1" min="1">
+                    </div>
+                  </div>
+
+                  <div class="inputs-row">
+                    <div class="form-group">
+                      <label for="cfg-grinderSpeedMultiplier">Grinder Speed Multiplier</label>
+                      <input type="number" id="cfg-grinderSpeedMultiplier" step="0.1" min="1">
+                    </div>
+                    <div class="form-group">
+                      <label for="cfg-autoSaveInMinutes">Auto-Save Interval (Minutes)</label>
+                      <input type="number" id="cfg-autoSaveInMinutes" min="1">
+                    </div>
+                  </div>
+
+                  <div class="inputs-row">
+                    <div class="form-group">
+                      <label for="cfg-viewDistance">View Distance (m)</label>
+                      <input type="number" id="cfg-viewDistance" min="1000" max="50000" step="500">
+                    </div>
+                    <div class="form-group checkbox-group" style="align-self: center; margin-top: 1.5rem;">
+                      <input type="checkbox" id="cfg-enableIngameScripts">
+                      <label for="cfg-enableIngameScripts">Enable Programmable Blocks (Scripts)</label>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Manager Config Section -->
+                <div class="form-section span-2 border-top">
+                  <h4>Server Manager Auto-Backups Settings</h4>
+                  <div class="inputs-row">
+                    <div class="form-group checkbox-group" style="align-self: center;">
+                      <input type="checkbox" id="mgr-autoBackupEnabled">
+                      <label for="mgr-autoBackupEnabled">Enable Automated Backups</label>
+                    </div>
+                    <div class="form-group">
+                      <label for="mgr-autoBackupIntervalHours">Backup Interval (Hours)</label>
+                      <input type="number" id="mgr-autoBackupIntervalHours" min="1" max="168">
+                    </div>
+                    <div class="form-group">
+                      <label for="mgr-autoBackupRetentionCount">Backups to Retain</label>
+                      <input type="number" id="mgr-autoBackupRetentionCount" min="1" max="100">
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+              <div class="form-footer">
+                <button type="submit" class="btn btn-success">Save Configurations</button>
+                <span id="config-save-status" class="status-msg"></span>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        <!-- 3. MODS MANAGER TAB -->
+        <section id="tab-mods" class="tab-panel">
+          <div class="glass-card">
+            <h3>Steam Workshop Mod List</h3>
+            <p class="description">Add Steam Workshop Mod IDs here. Space Engineers will download and keep them updated automatically upon start.</p>
+            
+            <div class="mod-add-container">
+              <div class="form-group">
+                <label for="new-mod-id">Steam Workshop Mod ID</label>
+                <div class="input-with-button">
+                  <input type="text" id="new-mod-id" placeholder="e.g. 1521905890" pattern="[0-9]+">
+                  <button id="btn-add-mod" class="btn btn-primary">Add Mod</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="mods-list-container">
+              <div class="table-wrapper">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Workshop ID</th>
+                      <th>Steam Workshop Link</th>
+                      <th class="actions-col">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="mods-table-body">
+                    <tr>
+                      <td colspan="3" class="text-center">Loading mod configuration...</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="form-footer border-top margin-top-lg">
+              <button id="btn-save-mods" class="btn btn-success">Save Mods Configuration</button>
+              <span id="mods-save-status" class="status-msg"></span>
+            </div>
+          </div>
+        </section>
+
+        <!-- 4. SAVES & BACKUPS TAB -->
+        <section id="tab-backups" class="tab-panel">
+          <div class="grid-layout">
+            
+            <!-- Saves Manager -->
+            <div class="glass-card span-2">
+              <h3>Worlds & Save Directories</h3>
+              <p>Existing save folders discovered in the server data directory.</p>
+              <div class="table-wrapper">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>World Folder Name</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="worlds-table-body">
+                    <tr>
+                      <td colspan="2" class="text-center">No worlds found. Start the server to generate one!</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Backups Manager -->
+            <div class="glass-card span-2">
+              <div class="card-header-actions">
+                <h3>System Backup Archives</h3>
+                <button id="btn-create-backup" class="btn btn-primary btn-sm">
+                  <span>💾</span> Backup Current Saves
+                </button>
+              </div>
+              <p>Zipped copies of the entire <code>Saves</code> directory. Managed by retention configuration.</p>
+              
+              <div class="table-wrapper">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Backup File Name</th>
+                      <th>File Size</th>
+                      <th>Created Date</th>
+                      <th class="actions-col">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="backups-table-body">
+                    <tr>
+                      <td colspan="4" class="text-center">Loading backups...</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 5. LIVE CONSOLE TAB -->
+        <section id="tab-console" class="tab-panel">
+          <div class="glass-card console-card-full">
+            <div class="console-header">
+              <div class="console-actions-left">
+                <span class="console-indicator status-dot-stopped" id="console-status-indicator"></span>
+                <span class="console-title">Live Output Terminal</span>
+              </div>
+              <div class="console-actions-right">
+                <button id="btn-clear-console" class="btn btn-sm btn-outline">Clear Terminal</button>
+                <button id="btn-download-logs" class="btn btn-sm btn-primary">Download Log File</button>
+              </div>
+            </div>
+            <div class="terminal-body" id="full-console">
+              <div class="console-line system">[SYSTEM] Connecting to server log stream...</div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+
+  </div>
+
+  <!-- Notification Overlay -->
+  <div id="notification" class="notification hidden">
+    <span id="notification-text">Action succeeded</span>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

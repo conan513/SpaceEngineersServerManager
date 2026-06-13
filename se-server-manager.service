@@ -1,0 +1,14 @@
+[Unit]
+Description=Space Engineers Dedicated Server Manager Web UI
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/Source/SpaceEngineersServerManager
+ExecStart=/usr/bin/node server.js
+Restart=on-failure
+RestartSec=5
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=default.target

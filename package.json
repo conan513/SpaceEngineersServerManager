@@ -1,0 +1,26 @@
+{
+  "name": "space-engineers-server-manager",
+  "version": "1.0.0",
+  "description": "Space Engineers Dedicated Server Manager & Web Dashboard for Linux",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "install-server": "bash scripts/install.sh"
+  },
+  "keywords": [
+    "space-engineers",
+    "server-manager",
+    "dedicated-server",
+    "wine",
+    "linux",
+    "steamcmd"
+  ],
+  "author": "Antigravity",
+  "license": "MIT",
+  "dependencies": {
+    "adm-zip": "^0.5.10",
+    "express": "^4.19.2",
+    "xml2js": "^0.6.2"
+  }
+}

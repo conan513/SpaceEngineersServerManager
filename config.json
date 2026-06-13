@@ -1,0 +1,12 @@
+{
+  "port": 8080,
+  "steamCmdPath": "steamcmd",
+  "winePrefixPath": "~/.local/share/se-server-manager/wineprefix",
+  "serverFilesPath": "~/.local/share/se-server-manager/server-files",
+  "serverDataPath": "~/.local/share/se-server-manager/server-data",
+  "backupsPath": "~/.local/share/se-server-manager/backups",
+  "autoBackupEnabled": true,
+  "autoBackupIntervalHours": 6,
+  "autoBackupRetentionCount": 10,
+  "autoUpdateOnStart": false
+}
