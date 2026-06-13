@@ -328,6 +328,7 @@ class ServerManagerApp {
       document.getElementById('cfg-grinderSpeedMultiplier').value = data.grinderSpeedMultiplier;
       document.getElementById('cfg-autoSaveInMinutes').value = data.autoSaveInMinutes;
       document.getElementById('cfg-enableIngameScripts').checked = data.enableIngameScripts;
+      document.getElementById('cfg-experimentalMode').checked = data.experimentalMode || false;
       document.getElementById('cfg-viewDistance').value = data.viewDistance;
       
       // Load world select dropdown options
@@ -387,6 +388,7 @@ class ServerManagerApp {
         grinderSpeedMultiplier: parseFloat(document.getElementById('cfg-grinderSpeedMultiplier').value),
         autoSaveInMinutes: parseInt(document.getElementById('cfg-autoSaveInMinutes').value),
         enableIngameScripts: document.getElementById('cfg-enableIngameScripts').checked,
+        experimentalMode: document.getElementById('cfg-experimentalMode').checked,
         viewDistance: parseInt(document.getElementById('cfg-viewDistance').value)
       };
 
@@ -541,10 +543,20 @@ class ServerManagerApp {
       input.value = '';
       this.renderModsTable();
     } catch (err) {
-      statusEl.textContent = `❌ Error: ${err.message}`;
-      statusEl.className = 'status-msg error';
-      this.showNotification(`Failed to resolve dependencies: ${err.message}`, 'error');
       console.error(err);
+      const confirmAdd = confirm(`Failed to resolve mod details from Steam Workshop: ${err.message}\n\nWould you like to add the Mod ID ${modId} anyway? Space Engineers will download it on startup.`);
+      if (confirmAdd) {
+        this.mods.push({ id: modId, title: `Workshop Mod #${modId}` });
+        this.renderModsTable();
+        statusEl.textContent = `⚠️ Added Mod ID ${modId} without Steam details. Remember to save!`;
+        statusEl.className = 'status-msg warning';
+        this.showNotification(`Added mod ID ${modId}!`, 'success');
+        input.value = '';
+      } else {
+        statusEl.textContent = `❌ Error: ${err.message}`;
+        statusEl.className = 'status-msg error';
+        this.showNotification(`Failed to resolve dependencies: ${err.message}`, 'error');
+      }
     } finally {
       input.disabled = false;
       button.disabled = false;

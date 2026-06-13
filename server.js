@@ -236,7 +236,7 @@ async function writeModsToXmlFile(filePath, modsBlock) {
   return true;
 }
 
-// Sync mods from mods.json into the active world's Sandbox_config.sbc before server start
+// Sync mods from mods.json into the active world's sbc files before server start
 async function syncModsToActiveWorld() {
   try {
     const mods = await loadModsJson();
@@ -245,20 +245,36 @@ async function syncModsToActiveWorld() {
       return;
     }
 
-    addLog(`Pre-start: syncing ${mods.length} mod(s) to both config files...`, 'info');
+    addLog(`Pre-start: syncing ${mods.length} mod(s) and enforcing Experimental Mode...`, 'info');
 
-    // 1. Write to .cfg (authoritative source the server reads for downloading mods)
+    // 1. Force Experimental Mode in SpaceEngineers-Dedicated.cfg
+    const mainCfg = await readSedsConfig();
+    if (mainCfg) {
+      if (!mainCfg.MyConfigDedicated) mainCfg.MyConfigDedicated = {};
+      if (!mainCfg.MyConfigDedicated.SessionSettings) mainCfg.MyConfigDedicated.SessionSettings = {};
+      mainCfg.MyConfigDedicated.SessionSettings.ExperimentalMode = 'true';
+      await writeSedsConfig(mainCfg);
+    }
+
+    // 2. Write to .cfg mods block
     const cfgBlock = buildCfgModsXmlBlock(mods);
     await writeModsToXmlFile(CONFIG_FILE_PATH, cfgBlock);
 
-    // 2. Write to Sandbox_config.sbc with correct ModItem format
-    const sandbox = await getActiveWorldSandboxConfig();
-    if (sandbox) {
+    // 3. Write to Sandbox_config.sbc and Sandbox.sbc with correct ModItem format
+    const paths = await getActiveWorldPaths();
+    if (paths) {
+      // Force Experimental Mode in world save files
+      await updateSettingsInSbcFile(paths.sandboxConfigPath, { experimentalMode: true });
+      await updateSettingsInSbcFile(paths.sandboxPath, { experimentalMode: true });
+
       const sbcBlock = buildSandboxModsXmlBlock(mods);
-      const ok = await writeModsToXmlFile(sandbox.path, sbcBlock);
-      if (ok) addLog(`✅ Pre-start sync: ${mods.length} mod(s) written to Sandbox_config.sbc`, 'info');
+      const okConfig = await writeModsToXmlFile(paths.sandboxConfigPath, sbcBlock);
+      const okSbc = await writeModsToXmlFile(paths.sandboxPath, sbcBlock);
+      
+      if (okConfig) addLog(`✅ Pre-start sync: mods written to Sandbox_config.sbc`, 'info');
+      if (okSbc) addLog(`✅ Pre-start sync: mods written to Sandbox.sbc`, 'info');
     } else {
-      addLog('No Sandbox_config.sbc found — mods will be loaded from .cfg by the server.', 'warning');
+      addLog('No active world paths resolved — mods will be loaded from .cfg on launch.', 'warning');
     }
   } catch (err) {
     addLog(`Warning: pre-start mod sync failed — ${err.message}`, 'warning');
@@ -638,8 +654,8 @@ async function writeSedsConfig(parsedData) {
   await fs.writeFile(CONFIG_FILE_PATH, xml, 'utf-8');
 }
 
-// Get sandbox config of active world if available
-async function getActiveWorldSandboxConfig() {
+// Get paths for Sandbox_config.sbc and Sandbox.sbc of the active world
+async function getActiveWorldPaths() {
   try {
     const mainCfg = await readSedsConfig();
     if (!mainCfg) return null;
@@ -657,19 +673,60 @@ async function getActiveWorldSandboxConfig() {
 
     if (!worldFolder) return null;
 
-    const sbcPath = path.join(serverDataPath, 'Saves', worldFolder, 'Sandbox_config.sbc');
-    if (existsSync(sbcPath)) {
-      const content = await fs.readFile(sbcPath, 'utf-8');
-      const parser = new xml2js.Parser({ explicitArray: false });
-      return {
-        path: sbcPath,
-        data: await parser.parseStringPromise(content)
-      };
-    }
+    const folderPath = path.join(serverDataPath, 'Saves', worldFolder);
+    return {
+      folderPath,
+      sandboxConfigPath: path.join(folderPath, 'Sandbox_config.sbc'),
+      sandboxPath: path.join(folderPath, 'Sandbox.sbc')
+    };
   } catch (err) {
-    console.warn('Sandbox_config.sbc not found or could not be parsed:', err.message);
+    console.warn('Error resolving active world paths:', err.message);
   }
   return null;
+}
+
+// Update settings inside a specific SBC save file (independent of the root tag)
+async function updateSettingsInSbcFile(filePath, updates) {
+  if (!existsSync(filePath)) return false;
+  try {
+    const content = await fs.readFile(filePath, 'utf-8');
+    const parser = new xml2js.Parser({ explicitArray: false });
+    const parsed = await parser.parseStringPromise(content);
+    
+    const rootKey = Object.keys(parsed)[0];
+    if (!parsed[rootKey]) return false;
+    
+    // Ensure Settings object exists
+    if (!parsed[rootKey].Settings) {
+      parsed[rootKey].Settings = {};
+    }
+    const s = parsed[rootKey].Settings;
+
+    // Apply updates
+    if (updates.gameMode !== undefined) s.GameMode = updates.gameMode;
+    if (updates.maxPlayers !== undefined) s.MaxPlayers = updates.maxPlayers.toString();
+    if (updates.inventorySizeMultiplier !== undefined) s.InventorySizeMultiplier = updates.inventorySizeMultiplier.toString();
+    if (updates.assemblerSpeedMultiplier !== undefined) s.AssemblerSpeedMultiplier = updates.assemblerSpeedMultiplier.toString();
+    if (updates.assemblerEfficiencyMultiplier !== undefined) s.AssemblerEfficiencyMultiplier = updates.assemblerEfficiencyMultiplier.toString();
+    if (updates.refinerySpeedMultiplier !== undefined) s.RefinerySpeedMultiplier = updates.refinerySpeedMultiplier.toString();
+    if (updates.welderSpeedMultiplier !== undefined) s.WelderSpeedMultiplier = updates.welderSpeedMultiplier.toString();
+    if (updates.grinderSpeedMultiplier !== undefined) s.GrinderSpeedMultiplier = updates.grinderSpeedMultiplier.toString();
+    if (updates.autoSaveInMinutes !== undefined) s.AutoSaveInMinutes = updates.autoSaveInMinutes.toString();
+    if (updates.enableIngameScripts !== undefined) s.EnableIngameScripts = updates.enableIngameScripts.toString();
+    if (updates.viewDistance !== undefined) s.ViewDistance = updates.viewDistance.toString();
+    if (updates.experimentalMode !== undefined) s.ExperimentalMode = updates.experimentalMode.toString();
+
+    const builder = new xml2js.Builder({
+      xmldec: { version: '1.0' },
+      renderOpts: { pretty: true, indent: '  ', newline: '\n' }
+    });
+    const xml = builder.buildObject(parsed);
+    await fs.writeFile(filePath, xml, 'utf-8');
+    return true;
+  } catch (err) {
+    addLog(`Error updating settings in ${path.basename(filePath)}: ${err.message}`, 'warning');
+    return false;
+  }
 }
 
 // Express app setup
@@ -797,6 +854,7 @@ app.get('/api/config', async (req, res) => {
       grinderSpeedMultiplier: parseFloat(settings.GrinderSpeedMultiplier) || 2,
       autoSaveInMinutes: parseInt(settings.AutoSaveInMinutes) || 5,
       enableIngameScripts: settings.EnableIngameScripts === 'true' || settings.EnableIngameScripts === true,
+      experimentalMode: settings.ExperimentalMode === 'true' || settings.ExperimentalMode === true,
       viewDistance: parseInt(settings.ViewDistance) || 15000
     };
 
@@ -846,32 +904,18 @@ app.post('/api/config', async (req, res) => {
     if (updates.grinderSpeedMultiplier !== undefined) s.GrinderSpeedMultiplier = updates.grinderSpeedMultiplier.toString();
     if (updates.autoSaveInMinutes !== undefined) s.AutoSaveInMinutes = updates.autoSaveInMinutes.toString();
     if (updates.enableIngameScripts !== undefined) s.EnableIngameScripts = updates.enableIngameScripts.toString();
+    if (updates.experimentalMode !== undefined) s.ExperimentalMode = updates.experimentalMode.toString();
     if (updates.viewDistance !== undefined) s.ViewDistance = updates.viewDistance.toString();
 
     await writeSedsConfig(mainCfg);
 
-    // Sync updates to Sandbox_config.sbc of current world if it exists
-    const sandbox = await getActiveWorldSandboxConfig();
-    if (sandbox) {
-      const sbc = sandbox.data;
-      if (sbc && sbc.MySandboxGameConfig && sbc.MySandboxGameConfig.Settings) {
-        const ws = sbc.MySandboxGameConfig.Settings;
-        if (updates.gameMode !== undefined) ws.GameMode = updates.gameMode;
-        if (updates.maxPlayers !== undefined) ws.MaxPlayers = updates.maxPlayers.toString();
-        if (updates.inventorySizeMultiplier !== undefined) ws.InventorySizeMultiplier = updates.inventorySizeMultiplier.toString();
-        if (updates.assemblerSpeedMultiplier !== undefined) ws.AssemblerSpeedMultiplier = updates.assemblerSpeedMultiplier.toString();
-        if (updates.assemblerEfficiencyMultiplier !== undefined) ws.AssemblerEfficiencyMultiplier = updates.assemblerEfficiencyMultiplier.toString();
-        if (updates.refinerySpeedMultiplier !== undefined) ws.RefinerySpeedMultiplier = updates.refinerySpeedMultiplier.toString();
-        if (updates.welderSpeedMultiplier !== undefined) ws.WelderSpeedMultiplier = updates.welderSpeedMultiplier.toString();
-        if (updates.grinderSpeedMultiplier !== undefined) ws.GrinderSpeedMultiplier = updates.grinderSpeedMultiplier.toString();
-        if (updates.autoSaveInMinutes !== undefined) ws.AutoSaveInMinutes = updates.autoSaveInMinutes.toString();
-        if (updates.enableIngameScripts !== undefined) ws.EnableIngameScripts = updates.enableIngameScripts.toString();
-        if (updates.viewDistance !== undefined) ws.ViewDistance = updates.viewDistance.toString();
-
-        const builder = new xml2js.Builder();
-        const xml = builder.buildObject(sbc);
-        await fs.writeFile(sandbox.path, xml, 'utf-8');
-        addLog('Synchronized settings to active world Sandbox_config.sbc.', 'info');
+    // Sync updates to active world configuration files if they exist
+    const paths = await getActiveWorldPaths();
+    if (paths) {
+      const configOk = await updateSettingsInSbcFile(paths.sandboxConfigPath, updates);
+      const sbcOk = await updateSettingsInSbcFile(paths.sandboxPath, updates);
+      if (configOk || sbcOk) {
+        addLog('Synchronized settings to active world configuration files.', 'info');
       }
     }
 
@@ -1007,13 +1051,32 @@ app.post('/api/mods', async (req, res) => {
       addLog('SpaceEngineers-Dedicated.cfg not found — mods saved to mods.json only.', 'warning');
     }
 
-    // 3. Write to Sandbox_config.sbc (ModItem/PublishedFileId format)
-    const sandbox = await getActiveWorldSandboxConfig();
-    if (sandbox) {
+    // 3. Write to Sandbox_config.sbc and Sandbox.sbc (ModItem/PublishedFileId format)
+    const paths = await getActiveWorldPaths();
+    if (paths) {
+      // Force Experimental Mode in world configuration files if we have mods
+      if (normalizedMods.length > 0) {
+        await updateSettingsInSbcFile(paths.sandboxConfigPath, { experimentalMode: true });
+        await updateSettingsInSbcFile(paths.sandboxPath, { experimentalMode: true });
+
+        // Also force in SpaceEngineers-Dedicated.cfg
+        const mainCfg = await readSedsConfig();
+        if (mainCfg) {
+          if (!mainCfg.MyConfigDedicated) mainCfg.MyConfigDedicated = {};
+          if (!mainCfg.MyConfigDedicated.SessionSettings) mainCfg.MyConfigDedicated.SessionSettings = {};
+          mainCfg.MyConfigDedicated.SessionSettings.ExperimentalMode = 'true';
+          await writeSedsConfig(mainCfg);
+        }
+      }
+
       const sbcBlock = buildSandboxModsXmlBlock(normalizedMods);
-      await writeModsToXmlFile(sandbox.path, sbcBlock);
+      const okConfig = await writeModsToXmlFile(paths.sandboxConfigPath, sbcBlock);
+      const okSbc = await writeModsToXmlFile(paths.sandboxPath, sbcBlock);
+      
+      if (okConfig) addLog(`✅ Sync: mods written to Sandbox_config.sbc`, 'info');
+      if (okSbc) addLog(`✅ Sync: mods written to Sandbox.sbc`, 'info');
     } else {
-      addLog('No Sandbox_config.sbc found — will sync on next server start.', 'warning');
+      addLog('No active world paths resolved — will sync on next server start.', 'warning');
     }
 
     res.json({ success: true, count: normalizedMods.length });
