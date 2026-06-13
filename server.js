@@ -212,9 +212,8 @@ function buildSandboxModsXmlBlock(mods) {
   if (!mods || mods.length === 0) return '<Mods />';
   const lines = mods.map(m => {
     const id = typeof m === 'object' ? m.id : m;
-    const title = (typeof m === 'object' && m.title) ? m.title : id;
     const isDep = (typeof m === 'object' && m.isDependency) ? '\n      <IsDependency>true</IsDependency>' : '';
-    return `    <ModItem FriendlyName="${title}">\n      <Name>${id}.sbm</Name>\n      <PublishedFileId>${id}</PublishedFileId>\n      <PublishedServiceName>Steam</PublishedServiceName>${isDep}\n    </ModItem>`;
+    return `    <ModItem FriendlyName="*Unknown*">\n      <Name>${id}.sbm</Name>\n      <PublishedFileId>${id}</PublishedFileId>\n      <PublishedServiceName>Steam</PublishedServiceName>${isDep}\n    </ModItem>`;
   }).join('\n');
   return `<Mods>\n${lines}\n  </Mods>`;
 }
@@ -260,19 +259,16 @@ async function syncModsToActiveWorld() {
     const cfgBlock = buildCfgModsXmlBlock(mods);
     await writeModsToXmlFile(CONFIG_FILE_PATH, cfgBlock);
 
-    // 3. Write to Sandbox_config.sbc and Sandbox.sbc with correct ModItem format
+    // 3. Write to Sandbox_config.sbc with correct ModItem format
     const paths = await getActiveWorldPaths();
     if (paths) {
       // Force Experimental Mode in world save files
       await updateSettingsInSbcFile(paths.sandboxConfigPath, { experimentalMode: true });
-      await updateSettingsInSbcFile(paths.sandboxPath, { experimentalMode: true });
 
       const sbcBlock = buildSandboxModsXmlBlock(mods);
       const okConfig = await writeModsToXmlFile(paths.sandboxConfigPath, sbcBlock);
-      const okSbc = await writeModsToXmlFile(paths.sandboxPath, sbcBlock);
       
       if (okConfig) addLog(`✅ Pre-start sync: mods written to Sandbox_config.sbc`, 'info');
-      if (okSbc) addLog(`✅ Pre-start sync: mods written to Sandbox.sbc`, 'info');
     } else {
       addLog('No active world paths resolved — mods will be loaded from .cfg on launch.', 'warning');
     }
@@ -909,13 +905,12 @@ app.post('/api/config', async (req, res) => {
 
     await writeSedsConfig(mainCfg);
 
-    // Sync updates to active world configuration files if they exist
+    // Sync updates to active world configuration file if it exists
     const paths = await getActiveWorldPaths();
     if (paths) {
       const configOk = await updateSettingsInSbcFile(paths.sandboxConfigPath, updates);
-      const sbcOk = await updateSettingsInSbcFile(paths.sandboxPath, updates);
-      if (configOk || sbcOk) {
-        addLog('Synchronized settings to active world configuration files.', 'info');
+      if (configOk) {
+        addLog('Synchronized settings to active world Sandbox_config.sbc.', 'info');
       }
     }
 
@@ -1054,10 +1049,9 @@ app.post('/api/mods', async (req, res) => {
     // 3. Write to Sandbox_config.sbc and Sandbox.sbc (ModItem/PublishedFileId format)
     const paths = await getActiveWorldPaths();
     if (paths) {
-      // Force Experimental Mode in world configuration files if we have mods
+      // Force Experimental Mode in world configuration file if we have mods
       if (normalizedMods.length > 0) {
         await updateSettingsInSbcFile(paths.sandboxConfigPath, { experimentalMode: true });
-        await updateSettingsInSbcFile(paths.sandboxPath, { experimentalMode: true });
 
         // Also force in SpaceEngineers-Dedicated.cfg
         const mainCfg = await readSedsConfig();
@@ -1071,10 +1065,8 @@ app.post('/api/mods', async (req, res) => {
 
       const sbcBlock = buildSandboxModsXmlBlock(normalizedMods);
       const okConfig = await writeModsToXmlFile(paths.sandboxConfigPath, sbcBlock);
-      const okSbc = await writeModsToXmlFile(paths.sandboxPath, sbcBlock);
       
       if (okConfig) addLog(`✅ Sync: mods written to Sandbox_config.sbc`, 'info');
-      if (okSbc) addLog(`✅ Sync: mods written to Sandbox.sbc`, 'info');
     } else {
       addLog('No active world paths resolved — will sync on next server start.', 'warning');
     }
