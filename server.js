@@ -366,24 +366,34 @@ function startLogFileTail() {
   logFileLastSize = 0;
   let resolvedLogPath = null; // Will be determined on first successful find
 
-  // Candidate log locations (SE may write to root or Logs/ subdirectory)
-  const candidatePaths = [
-    path.join(serverDataPath, 'SpaceEngineers-Dedicated.log'),
-    path.join(serverDataPath, 'Logs', 'SpaceEngineers-Dedicated.log'),
+  // Search directories where SE may write its log file (with dynamic date-based names)
+  const logSearchDirs = [
+    serverDataPath,
+    path.join(serverDataPath, 'Logs'),
   ];
 
   async function findCurrentLogFile() {
     let best = null;
     let bestMtime = 0;
-    for (const candidate of candidatePaths) {
+
+    for (const dir of logSearchDirs) {
       try {
-        const stat = await fs.stat(candidate);
-        if (stat.mtimeMs > bestMtime) {
-          bestMtime = stat.mtimeMs;
-          best = candidate;
+        const entries = await fs.readdir(dir);
+        for (const entry of entries) {
+          // Match any file starting with "SpaceEngineers" and ending in ".log"
+          if (!entry.toLowerCase().startsWith('spaceengineers') || !entry.toLowerCase().endsWith('.log')) continue;
+          const fullPath = path.join(dir, entry);
+          try {
+            const stat = await fs.stat(fullPath);
+            if (stat.mtimeMs > bestMtime) {
+              bestMtime = stat.mtimeMs;
+              best = fullPath;
+            }
+          } catch { /* skip unreadable files */ }
         }
-      } catch { /* file doesn't exist yet */ }
+      } catch { /* directory doesn't exist yet */ }
     }
+
     return best;
   }
 
