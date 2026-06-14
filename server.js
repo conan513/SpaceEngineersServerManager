@@ -286,7 +286,7 @@ async function syncModsToActiveWorld() {
         addLog(`⏳ New world detected — server will run briefly to generate world files, then auto-restart with mods.`, 'info');
 
         let attempts = 0;
-        const maxAttempts = 240; // 240 × 500ms = 2 minutes max wait
+        const maxAttempts = 1200; // 1200 × 500ms = 10 minutes max wait
         const pollInterval = setInterval(async () => {
           attempts++;
 
@@ -298,10 +298,17 @@ async function syncModsToActiveWorld() {
 
           if (existsSync(paths.sandboxConfigPath)) {
             clearInterval(pollInterval);
-            addLog(`✅ Sandbox_config.sbc created by server — stopping to inject mods...`, 'info');
+            addLog(`✅ Sandbox_config.sbc created by server — stopping server first to prevent overwriting...`, 'info');
 
-            // Give the server a moment to finish writing all world files
-            await new Promise(r => setTimeout(r, 2000));
+            // Stop the server
+            await stopServer();
+
+            // Wait until fully stopped (ensures server has finished saving and writing all files)
+            let stopWait = 0;
+            while (serverStatus !== 'STOPPED' && stopWait < 60) {
+              await new Promise(r => setTimeout(r, 1000));
+              stopWait++;
+            }
 
             // Inject mods + all current session settings into the freshly created world config
             try {
@@ -318,28 +325,34 @@ async function syncModsToActiveWorld() {
               const sbcBlock = buildSandboxModsXmlBlock(mods);
               await writeModsToXmlFile(paths.sandboxConfigPath, sbcBlock);
               addLog(`✅ Mods injected into new world's Sandbox_config.sbc (${mods.length} mod(s))`, 'info');
+
+              // Transition the dedicated server config to load this world save instead of regenerating it
+              if (currentCfg && currentCfg.MyConfigDedicated) {
+                const d = currentCfg.MyConfigDedicated;
+                const worldLinuxPath = path.join(serverDataPath, 'Saves', d.WorldName);
+                const wineWorldPath = await getWinePath(worldLinuxPath);
+
+                d.LoadWorld = wineWorldPath;
+                d.PremadeCheckpointPath = ''; // clear template path
+                await writeSedsConfig(currentCfg);
+                addLog(`✅ Main config updated: LoadWorld set to '${d.WorldName}' to load progress.`, 'info');
+              }
             } catch (e) {
-              addLog(`⚠️ Failed to inject settings/mods: ${e.message}`, 'warning');
-            }
-
-            // Stop the server
-            addLog(`🔄 Stopping server for mod-injection restart...`, 'info');
-            await stopServer();
-
-            // Wait until fully stopped
-            let stopWait = 0;
-            while (serverStatus !== 'STOPPED' && stopWait < 60) {
-              await new Promise(r => setTimeout(r, 1000));
-              stopWait++;
+              addLog(`⚠️ Failed to inject settings/mods or transition config: ${e.message}`, 'warning');
             }
 
             // Restart — this time Sandbox_config.sbc exists so mods will be active
             addLog(`🚀 Restarting server with mods applied to new world...`, 'info');
             await startServer();
 
-          } else if (attempts >= maxAttempts) {
-            clearInterval(pollInterval);
-            addLog(`⚠️ Sandbox_config.sbc not created within 2 minutes — mods may not be in world save.`, 'warning');
+          } else {
+            if (attempts % 30 === 0) {
+              addLog(`⏳ Still waiting for Sandbox_config.sbc to be created by server (${Math.round(attempts/2)}s elapsed)...`, 'info');
+            }
+            if (attempts >= maxAttempts) {
+              clearInterval(pollInterval);
+              addLog(`⚠️ Sandbox_config.sbc not created within 10 minutes — mods may not be in world save.`, 'warning');
+            }
           }
         }, 500);
       }
