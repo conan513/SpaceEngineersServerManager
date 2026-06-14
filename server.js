@@ -637,6 +637,238 @@ function startAutoBackupSchedule() {
 startAutoBackupSchedule();
 
 
+const SESSION_SETTINGS_MAP = {
+  // Booleans
+  enableOxygen: { tag: 'EnableOxygen', type: 'bool', def: true },
+  enableOxygenPressurization: { tag: 'EnableOxygenPressurization', type: 'bool', def: true },
+  enableVoxelDestruction: { tag: 'EnableVoxelDestruction', type: 'bool', def: true },
+  enable3rdPersonView: { tag: 'Enable3rdPersonView', type: 'bool', def: true },
+  enableEncounters: { tag: 'EnableEncounters', type: 'bool', def: true },
+  weaponsEnabled: { tag: 'WeaponsEnabled', type: 'bool', def: true },
+  cargoShipsEnabled: { tag: 'CargoShipsEnabled', type: 'bool', def: true },
+  autoHealing: { tag: 'AutoHealing', type: 'bool', def: true },
+  enableCopyPaste: { tag: 'EnableCopyPaste', type: 'bool', def: false },
+  enableToolShake: { tag: 'EnableToolShake', type: 'bool', def: true },
+  enableSpectator: { tag: 'EnableSpectator', type: 'bool', def: false },
+  adaptiveSimulationQuality: { tag: 'AdaptiveSimulationQuality', type: 'bool', def: true },
+  showPlayerNamesOnHud: { tag: 'ShowPlayerNamesOnHud', type: 'bool', def: true },
+  thrusterDamage: { tag: 'ThrusterDamage', type: 'bool', def: true },
+  respawnShipDelete: { tag: 'RespawnShipDelete', type: 'bool', def: false },
+  resetOwnership: { tag: 'ResetOwnership', type: 'bool', def: false },
+  realisticSound: { tag: 'RealisticSound', type: 'bool', def: false },
+  permanentDeath: { tag: 'PermanentDeath', type: 'bool', def: false },
+  enableSaving: { tag: 'EnableSaving', type: 'bool', def: true },
+  infiniteAmmo: { tag: 'InfiniteAmmo', type: 'bool', def: false },
+  enableContainerDrops: { tag: 'EnableContainerDrops', type: 'bool', def: true },
+  destructibleBlocks: { tag: 'DestructibleBlocks', type: 'bool', def: true },
+  enableIngameScripts: { tag: 'EnableIngameScripts', type: 'bool', def: false },
+  experimentalMode: { tag: 'ExperimentalMode', type: 'bool', def: false },
+  enableConvertToStation: { tag: 'EnableConvertToStation', type: 'bool', def: true },
+  stationVoxelSupport: { tag: 'StationVoxelSupport', type: 'bool', def: false },
+  enableSunRotation: { tag: 'EnableSunRotation', type: 'bool', def: true },
+  enableRespawnShips: { tag: 'EnableRespawnShips', type: 'bool', def: true },
+  scenarioEditMode: { tag: 'ScenarioEditMode', type: 'bool', def: false },
+  scenario: { tag: 'Scenario', type: 'bool', def: false },
+  updateRespawnDictionary: { tag: 'UpdateRespawnDictionary', type: 'bool', def: false },
+  canJoinRunning: { tag: 'CanJoinRunning', type: 'bool', def: false },
+  enableJetpack: { tag: 'EnableJetpack', type: 'bool', def: true },
+  spawnWithTools: { tag: 'SpawnWithTools', type: 'bool', def: true },
+  blueprintShare: { tag: 'BlueprintShare', type: 'bool', def: true },
+  startInRespawnScreen: { tag: 'StartInRespawnScreen', type: 'bool', def: false },
+  enableDrones: { tag: 'EnableDrones', type: 'bool', def: true },
+  enableWolfs: { tag: 'EnableWolfs', type: 'bool', def: false },
+  enableSpiders: { tag: 'EnableSpiders', type: 'bool', def: false },
+  enableScripterRole: { tag: 'EnableScripterRole', type: 'bool', def: false },
+  enableTurretsFriendlyFire: { tag: 'EnableTurretsFriendlyFire', type: 'bool', def: false },
+  enableSubgridDamage: { tag: 'EnableSubgridDamage', type: 'bool', def: false },
+  enableVoxelHand: { tag: 'EnableVoxelHand', type: 'bool', def: true },
+  trashRemovalEnabled: { tag: 'TrashRemovalEnabled', type: 'bool', def: true },
+  voxelTrashRemovalEnabled: { tag: 'VoxelTrashRemovalEnabled', type: 'bool', def: false },
+  enableResearch: { tag: 'EnableResearch', type: 'bool', def: true },
+  enableGoodBotHints: { tag: 'EnableGoodBotHints', type: 'bool', def: true },
+  enableAutorespawn: { tag: 'EnableAutorespawn', type: 'bool', def: true },
+  enableBountyContracts: { tag: 'EnableBountyContracts', type: 'bool', def: true },
+  enableSupergridding: { tag: 'EnableSupergridding', type: 'bool', def: false },
+  enableEconomy: { tag: 'EnableEconomy', type: 'bool', def: false },
+  weatherSystem: { tag: 'WeatherSystem', type: 'bool', def: true },
+  weatherLightingDamage: { tag: 'WeatherLightingDamage', type: 'bool', def: false },
+  simplifiedSimulation: { tag: 'SimplifiedSimulation', type: 'bool', def: false },
+  enablePcuTrading: { tag: 'EnablePcuTrading', type: 'bool', def: true },
+  familySharing: { tag: 'FamilySharing', type: 'bool', def: true },
+  enableSelectivePhysicsUpdates: { tag: 'EnableSelectivePhysicsUpdates', type: 'bool', def: false },
+  predefinedAsteroids: { tag: 'PredefinedAsteroids', type: 'bool', def: true },
+  useConsolePCU: { tag: 'UseConsolePCU', type: 'bool', def: false },
+  offensiveWordsFiltering: { tag: 'OffensiveWordsFiltering', type: 'bool', def: false },
+  adjustableMaxVehicleSpeed: { tag: 'AdjustableMaxVehicleSpeed', type: 'bool', def: true },
+  enableMatchComponent: { tag: 'EnableMatchComponent', type: 'bool', def: false },
+  enableFriendlyFire: { tag: 'EnableFriendlyFire', type: 'bool', def: true },
+  enableTeamBalancing: { tag: 'EnableTeamBalancing', type: 'bool', def: false },
+  enableRecoil: { tag: 'EnableRecoil', type: 'bool', def: true },
+  enableGamepadAimAssist: { tag: 'EnableGamepadAimAssist', type: 'bool', def: false },
+  enableFactionPlayerNames: { tag: 'EnableFactionPlayerNames', type: 'bool', def: false },
+  enableTeamScoreCounters: { tag: 'EnableTeamScoreCounters', type: 'bool', def: true },
+  enableSpaceSuitRespawn: { tag: 'EnableSpaceSuitRespawn', type: 'bool', def: true },
+  enableFactionVoiceChat: { tag: 'EnableFactionVoiceChat', type: 'bool', def: false },
+  enableOrca: { tag: 'EnableOrca', type: 'bool', def: true },
+  enableTrashSettingsPlatformOverride: { tag: 'EnableTrashSettingsPlatformOverride', type: 'bool', def: true },
+  scrapEnabled: { tag: 'ScrapEnabled', type: 'bool', def: false },
+  temporaryContainers: { tag: 'TemporaryContainers', type: 'bool', def: true },
+  globalEncounterEnableRemovalTimer: { tag: 'GlobalEncounterEnableRemovalTimer', type: 'bool', def: true },
+  enablePlanetaryEncounters: { tag: 'EnablePlanetaryEncounters', type: 'bool', def: true },
+  enableShareInertiaTensor: { tag: 'EnableShareInertiaTensor', type: 'bool', def: false },
+  enableUnsafePistonImpulses: { tag: 'EnableUnsafePistonImpulses', type: 'bool', def: false },
+  enableUnsafeRotorTorques: { tag: 'EnableUnsafeRotorTorques', type: 'bool', def: false },
+  enableRadiation: { tag: 'EnableRadiation', type: 'bool', def: true },
+  resetForageableItems: { tag: 'ResetForageableItems', type: 'bool', def: true },
+  enableSurvivalBuffs: { tag: 'EnableSurvivalBuffs', type: 'bool', def: false },
+  enableReducedStatsOnRespawn: { tag: 'EnableReducedStatsOnRespawn', type: 'bool', def: false },
+  randomizeSeed: { tag: 'RandomizeSeed', type: 'bool', def: false },
+  gridStorageAllowsInventory: { tag: 'GridStorageAllowsInventory', type: 'bool', def: false },
+  enableRemoteBlockRemoval: { tag: 'EnableRemoteBlockRemoval', type: 'bool', def: true },
+
+  // Integers
+  maxPlayers: { tag: 'MaxPlayers', type: 'int', def: 4 },
+  maxFloatingObjects: { tag: 'MaxFloatingObjects', type: 'int', def: 56 },
+  totalBotLimit: { tag: 'TotalBotLimit', type: 'int', def: 32 },
+  maxBackupSaves: { tag: 'MaxBackupSaves', type: 'int', def: 5 },
+  maxGridSize: { tag: 'MaxGridSize', type: 'int', def: 0 },
+  maxBlocksPerPlayer: { tag: 'MaxBlocksPerPlayer', type: 'int', def: 0 },
+  totalPCU: { tag: 'TotalPCU', type: 'int', def: 100000 },
+  piratePCU: { tag: 'PiratePCU', type: 'int', def: 25000 },
+  globalEncounterPCU: { tag: 'GlobalEncounterPCU', type: 'int', def: 25000 },
+  maxFactionsCount: { tag: 'MaxFactionsCount', type: 'int', def: 0 },
+  worldSizeKm: { tag: 'WorldSizeKm', type: 'int', def: 0 },
+  autoSaveInMinutes: { tag: 'AutoSaveInMinutes', type: 'int', def: 5 },
+  viewDistance: { tag: 'ViewDistance', type: 'int', def: 15000 },
+  voxelGeneratorVersion: { tag: 'VoxelGeneratorVersion', type: 'int', def: 4 },
+  physicsIterations: { tag: 'PhysicsIterations', type: 'int', def: 8 },
+  blueprintShareTimeout: { tag: 'BlueprintShareTimeout', type: 'int', def: 30 },
+  maxDrones: { tag: 'MaxDrones', type: 'int', def: 5 },
+  minDropContainerRespawnTime: { tag: 'MinDropContainerRespawnTime', type: 'int', def: 5 },
+  maxDropContainerRespawnTime: { tag: 'MaxDropContainerRespawnTime', type: 'int', def: 20 },
+  syncDistance: { tag: 'SyncDistance', type: 'int', def: 3000 },
+  removeOldIdentitiesH: { tag: 'RemoveOldIdentitiesH', type: 'int', def: 0 },
+  stopGridsPeriodMin: { tag: 'StopGridsPeriodMin', type: 'int', def: 15 },
+  trashFlagsValue: { tag: 'TrashFlagsValue', type: 'int', def: 1562 },
+  afkTimeountMin: { tag: 'AFKTimeountMin', type: 'int', def: 0 },
+  blockCountThreshold: { tag: 'BlockCountThreshold', type: 'int', def: 20 },
+  playerDistanceThreshold: { tag: 'PlayerDistanceThreshold', type: 'int', def: 500 },
+  optimalGridCount: { tag: 'OptimalGridCount', type: 'int', def: 0 },
+  playerInactivityThreshold: { tag: 'PlayerInactivityThreshold', type: 'int', def: 0 },
+  playerCharacterRemovalThreshold: { tag: 'PlayerCharacterRemovalThreshold', type: 'int', def: 15 },
+  voxelPlayerDistanceThreshold: { tag: 'VoxelPlayerDistanceThreshold', type: 'int', def: 5000 },
+  voxelGridDistanceThreshold: { tag: 'VoxelGridDistanceThreshold', type: 'int', def: 5000 },
+  voxelAgeThreshold: { tag: 'VoxelAgeThreshold', type: 'int', def: 24 },
+  optimalSpawnDistance: { tag: 'OptimalSpawnDistance', type: 'int', def: 16000 },
+  tradeFactionsCount: { tag: 'TradeFactionsCount', type: 'int', def: 10 },
+  stationsDistanceInnerRadius: { tag: 'StationsDistanceInnerRadius', type: 'int', def: 5000000 },
+  stationsDistanceOuterRadiusStart: { tag: 'StationsDistanceOuterRadiusStart', type: 'int', def: 5000000 },
+  stationsDistanceOuterRadiusEnd: { tag: 'StationsDistanceOuterRadiusEnd', type: 'int', def: 10000000 },
+  economyTickInSeconds: { tag: 'EconomyTickInSeconds', type: 'int', def: 600 },
+  npcGridClaimTimeLimit: { tag: 'NPCGridClaimTimeLimit', type: 'int', def: 120 },
+  maxPlanets: { tag: 'MaxPlanets', type: 'int', def: 99 },
+  preMatchDuration: { tag: 'PreMatchDuration', type: 'int', def: 0 },
+  matchDuration: { tag: 'MatchDuration', type: 'int', def: 0 },
+  postMatchDuration: { tag: 'PostMatchDuration', type: 'int', def: 0 },
+  backpackDespawnTimer: { tag: 'BackpackDespawnTimer', type: 'int', def: 5 },
+  matchRestartWhenEmptyTime: { tag: 'MatchRestartWhenEmptyTime', type: 'int', def: 0 },
+  maxProductionQueueLength: { tag: 'MaxProductionQueueLength', type: 'int', def: 50 },
+  prefetchShapeRayLengthLimit: { tag: 'PrefetchShapeRayLengthLimit', type: 'int', def: 15000 },
+  enemyTargetIndicatorDistance: { tag: 'EnemyTargetIndicatorDistance', type: 'int', def: 20 },
+  minimumWorldSize: { tag: 'MinimumWorldSize', type: 'int', def: 6000 },
+  maxCargoBags: { tag: 'MaxCargoBags', type: 'int', def: 100 },
+  trashCleanerCargoBagsMaxLiveTime: { tag: 'TrashCleanerCargoBagsMaxLiveTime', type: 'int', def: 30 },
+  broadcastControllerMaxOfflineTransmitDistance: { tag: 'BroadcastControllerMaxOfflineTransmitDistance', type: 'int', def: 200 },
+  globalEncounterTimer: { tag: 'GlobalEncounterTimer', type: 'int', def: 15 },
+  globalEncounterCap: { tag: 'GlobalEncounterCap', type: 'int', def: 1 },
+  globalEncounterMinRemovalTimer: { tag: 'GlobalEncounterMinRemovalTimer', type: 'int', def: 90 },
+  globalEncounterMaxRemovalTimer: { tag: 'GlobalEncounterMaxRemovalTimer', type: 'int', def: 180 },
+  globalEncounterRemovalTimeClock: { tag: 'GlobalEncounterRemovalTimeClock', type: 'int', def: 30 },
+  encounterGeneratorVersion: { tag: 'EncounterGeneratorVersion', type: 'int', def: 6 },
+  planetaryEncounterTimerMin: { tag: 'PlanetaryEncounterTimerMin', type: 'int', def: 15 },
+  planetaryEncounterTimerMax: { tag: 'PlanetaryEncounterTimerMax', type: 'int', def: 30 },
+  planetaryEncounterTimerFirst: { tag: 'PlanetaryEncounterTimerFirst', type: 'int', def: 5 },
+  planetaryEncounterExistingStructuresRange: { tag: 'PlanetaryEncounterExistingStructuresRange', type: 'int', def: 7000 },
+  planetaryEncounterAreaLockdownRange: { tag: 'PlanetaryEncounterAreaLockdownRange', type: 'int', def: 10000 },
+  planetaryEncounterDesiredSpawnRange: { tag: 'PlanetaryEncounterDesiredSpawnRange', type: 'int', def: 6000 },
+  planetaryEncounterPresenceRange: { tag: 'PlanetaryEncounterPresenceRange', type: 'int', def: 20000 },
+  planetaryEncounterDespawnTimeout: { tag: 'PlanetaryEncounterDespawnTimeout', type: 'int', def: 120 },
+  maxHudChatMessageCount: { tag: 'MaxHudChatMessageCount', type: 'int', def: 100 },
+  solarRadiationIntensity: { tag: 'SolarRadiationIntensity', type: 'int', def: 0 },
+  resetForageableItemsTimeM: { tag: 'ResetForageableItemsTimeM', type: 'int', def: 30 },
+  resetForageableItemsDistance: { tag: 'ResetForageableItemsDistance', type: 'int', def: 3000 },
+  gridStorageMaxPerPlayer: { tag: 'GridStorageMaxPerPlayer', type: 'int', def: 100 },
+  gridStorageQueueLimit: { tag: 'GridStorageQueueLimit', type: 'int', def: 1 },
+  gridStorageRetrievalTimeMaxMinutes: { tag: 'GridStorageRetrievalTimeMaxMinutes', type: 'int', def: 30 },
+  gridStorageRetrievalTimeMinMinutes: { tag: 'GridStorageRetrievalTimeMinMinutes', type: 'int', def: 2 },
+  proceduralSeed: { tag: 'ProceduralSeed', type: 'int', def: 0 },
+
+  // Floats
+  inventorySizeMultiplier: { tag: 'InventorySizeMultiplier', type: 'float', def: 3 },
+  blocksInventorySizeMultiplier: { tag: 'BlocksInventorySizeMultiplier', type: 'float', def: 1 },
+  assemblerSpeedMultiplier: { tag: 'AssemblerSpeedMultiplier', type: 'float', def: 3 },
+  assemblerEfficiencyMultiplier: { tag: 'AssemblerEfficiencyMultiplier', type: 'float', def: 3 },
+  refinerySpeedMultiplier: { tag: 'RefinerySpeedMultiplier', type: 'float', def: 3 },
+  welderSpeedMultiplier: { tag: 'WelderSpeedMultiplier', type: 'float', def: 2 },
+  grinderSpeedMultiplier: { tag: 'GrinderSpeedMultiplier', type: 'float', def: 2 },
+  hackSpeedMultiplier: { tag: 'HackSpeedMultiplier', type: 'float', def: 0.33 },
+  spawnShipTimeMultiplier: { tag: 'SpawnShipTimeMultiplier', type: 'float', def: 0 },
+  proceduralDensity: { tag: 'ProceduralDensity', type: 'float', def: 0.35 },
+  sunRotationIntervalMinutes: { tag: 'SunRotationIntervalMinutes', type: 'float', def: 120 },
+  floraDensityMultiplier: { tag: 'FloraDensityMultiplier', type: 'float', def: 1 },
+  depositsCountCoefficient: { tag: 'DepositsCountCoefficient', type: 'float', def: 2 },
+  depositSizeDenominator: { tag: 'DepositSizeDenominator', type: 'float', def: 30 },
+  harvestRatioMultiplier: { tag: 'HarvestRatioMultiplier', type: 'float', def: 1 },
+  characterSpeedMultiplier: { tag: 'CharacterSpeedMultiplier', type: 'float', def: 1 },
+  environmentDamageMultiplier: { tag: 'EnvironmentDamageMultiplier', type: 'float', def: 1 },
+  encounterDensity: { tag: 'EncounterDensity', type: 'float', def: 0.35 },
+  foodConsumptionRate: { tag: 'FoodConsumptionRate', type: 'float', def: 0 },
+  reputationDecayRate: { tag: 'ReputationDecayRate', type: 'float', def: 0.5 },
+  gridStorageRetrievalTimeMultiplier: { tag: 'GridStorageRetrievalTimeMultiplier', type: 'float', def: 1 },
+  gridStorageMinutesPerPCU: { tag: 'GridStorageMinutesPerPCU', type: 'float', def: 0.001 },
+  gridStorageExpediteFactor: { tag: 'GridStorageExpediteFactor', type: 'float', def: 0.5 },
+  gridStorageExpediteCostPerSecond: { tag: 'GridStorageExpediteCostPerSecond', type: 'float', def: 1000 },
+
+  // Strings
+  gameMode: { tag: 'GameMode', type: 'str', def: 'Survival' },
+  onlineMode: { tag: 'OnlineMode', type: 'str', def: 'PUBLIC' },
+  blockLimitsEnabled: { tag: 'BlockLimitsEnabled', type: 'str', def: 'GLOBALLY' },
+  environmentHostility: { tag: 'EnvironmentHostility', type: 'str', def: 'SAFE' },
+  limitBlocksBy: { tag: 'LimitBlocksBy', type: 'str', def: 'BlockPairName' }
+};
+
+function parseSessionSettings(settings) {
+  const result = {};
+  for (const [key, field] of Object.entries(SESSION_SETTINGS_MAP)) {
+    const rawVal = settings[field.tag];
+    if (rawVal === undefined) {
+      result[key] = field.def;
+      continue;
+    }
+    if (field.type === 'bool') {
+      result[key] = rawVal === 'true' || rawVal === true;
+    } else if (field.type === 'int') {
+      result[key] = parseInt(rawVal);
+      if (isNaN(result[key])) result[key] = field.def;
+    } else if (field.type === 'float') {
+      result[key] = parseFloat(rawVal);
+      if (isNaN(result[key])) result[key] = field.def;
+    } else {
+      result[key] = rawVal;
+    }
+  }
+  return result;
+}
+
+function serializeSessionSettings(target, updates) {
+  for (const [key, field] of Object.entries(SESSION_SETTINGS_MAP)) {
+    const val = updates[key];
+    if (val !== undefined) {
+      target[field.tag] = val.toString();
+    }
+  }
+}
+
 // Configuration Parsing & Merging
 
 async function readSedsConfig() {
@@ -710,20 +942,8 @@ async function updateSettingsInSbcFile(filePath, updates) {
       parsed[rootKey].Settings = {};
     }
     const s = parsed[rootKey].Settings;
-
     // Apply updates
-    if (updates.gameMode !== undefined) s.GameMode = updates.gameMode;
-    if (updates.maxPlayers !== undefined) s.MaxPlayers = updates.maxPlayers.toString();
-    if (updates.inventorySizeMultiplier !== undefined) s.InventorySizeMultiplier = updates.inventorySizeMultiplier.toString();
-    if (updates.assemblerSpeedMultiplier !== undefined) s.AssemblerSpeedMultiplier = updates.assemblerSpeedMultiplier.toString();
-    if (updates.assemblerEfficiencyMultiplier !== undefined) s.AssemblerEfficiencyMultiplier = updates.assemblerEfficiencyMultiplier.toString();
-    if (updates.refinerySpeedMultiplier !== undefined) s.RefinerySpeedMultiplier = updates.refinerySpeedMultiplier.toString();
-    if (updates.welderSpeedMultiplier !== undefined) s.WelderSpeedMultiplier = updates.welderSpeedMultiplier.toString();
-    if (updates.grinderSpeedMultiplier !== undefined) s.GrinderSpeedMultiplier = updates.grinderSpeedMultiplier.toString();
-    if (updates.autoSaveInMinutes !== undefined) s.AutoSaveInMinutes = updates.autoSaveInMinutes.toString();
-    if (updates.enableIngameScripts !== undefined) s.EnableIngameScripts = updates.enableIngameScripts.toString();
-    if (updates.viewDistance !== undefined) s.ViewDistance = updates.viewDistance.toString();
-    if (updates.experimentalMode !== undefined) s.ExperimentalMode = updates.experimentalMode.toString();
+    serializeSessionSettings(s, updates);
 
     const builder = new xml2js.Builder({
       xmldec: { version: '1.0' },
@@ -973,19 +1193,13 @@ app.get('/api/config', requireAdmin, async (req, res) => {
       pauseGameWhenEmpty: dedicated.PauseGameWhenEmpty === 'true' || dedicated.PauseGameWhenEmpty === true,
       ignoreLastSession: dedicated.IgnoreLastSession === 'true' || dedicated.IgnoreLastSession === true,
       
-      // Session Settings
-      gameMode: settings.GameMode || 'Survival',
-      maxPlayers: parseInt(settings.MaxPlayers) || 4,
-      inventorySizeMultiplier: parseFloat(settings.InventorySizeMultiplier) || 10,
-      assemblerSpeedMultiplier: parseFloat(settings.AssemblerSpeedMultiplier) || 3,
-      assemblerEfficiencyMultiplier: parseFloat(settings.AssemblerEfficiencyMultiplier) || 3,
-      refinerySpeedMultiplier: parseFloat(settings.RefinerySpeedMultiplier) || 3,
-      welderSpeedMultiplier: parseFloat(settings.WelderSpeedMultiplier) || 2,
-      grinderSpeedMultiplier: parseFloat(settings.GrinderSpeedMultiplier) || 2,
-      autoSaveInMinutes: parseInt(settings.AutoSaveInMinutes) || 5,
-      enableIngameScripts: settings.EnableIngameScripts === 'true' || settings.EnableIngameScripts === true,
-      experimentalMode: settings.ExperimentalMode === 'true' || settings.ExperimentalMode === true,
-      viewDistance: parseInt(settings.ViewDistance) || 15000
+      // Server-level dedicated settings
+      serverDescription: dedicated.ServerDescription || '',
+      password: dedicated.Password || '',
+      groupId: dedicated.GroupID || '',
+      maxBackupSaves: parseInt(dedicated.MaxBackupSaves) || parseInt(settings.MaxBackupSaves) || 5,
+
+      ...parseSessionSettings(settings)
     };
 
     res.json(responseData);
@@ -1008,7 +1222,6 @@ app.post('/api/config', requireAdmin, async (req, res) => {
 
     const d = mainCfg.MyConfigDedicated;
     const s = d.SessionSettings;
-
     // Apply updates to dedicated config
     if (updates.serverName !== undefined) d.ServerName = updates.serverName;
     if (updates.port !== undefined) d.Port = updates.port.toString();
@@ -1023,19 +1236,15 @@ app.post('/api/config', requireAdmin, async (req, res) => {
     if (updates.pauseGameWhenEmpty !== undefined) d.PauseGameWhenEmpty = updates.pauseGameWhenEmpty.toString();
     if (updates.ignoreLastSession !== undefined) d.IgnoreLastSession = updates.ignoreLastSession.toString();
 
-    // Session settings updates
-    if (updates.gameMode !== undefined) s.GameMode = updates.gameMode;
-    if (updates.maxPlayers !== undefined) s.MaxPlayers = updates.maxPlayers.toString();
-    if (updates.inventorySizeMultiplier !== undefined) s.InventorySizeMultiplier = updates.inventorySizeMultiplier.toString();
-    if (updates.assemblerSpeedMultiplier !== undefined) s.AssemblerSpeedMultiplier = updates.assemblerSpeedMultiplier.toString();
-    if (updates.assemblerEfficiencyMultiplier !== undefined) s.AssemblerEfficiencyMultiplier = updates.assemblerEfficiencyMultiplier.toString();
-    if (updates.refinerySpeedMultiplier !== undefined) s.RefinerySpeedMultiplier = updates.refinerySpeedMultiplier.toString();
-    if (updates.welderSpeedMultiplier !== undefined) s.WelderSpeedMultiplier = updates.welderSpeedMultiplier.toString();
-    if (updates.grinderSpeedMultiplier !== undefined) s.GrinderSpeedMultiplier = updates.grinderSpeedMultiplier.toString();
-    if (updates.autoSaveInMinutes !== undefined) s.AutoSaveInMinutes = updates.autoSaveInMinutes.toString();
-    if (updates.enableIngameScripts !== undefined) s.EnableIngameScripts = updates.enableIngameScripts.toString();
-    if (updates.experimentalMode !== undefined) s.ExperimentalMode = updates.experimentalMode.toString();
-    if (updates.viewDistance !== undefined) s.ViewDistance = updates.viewDistance.toString();
+    // New server-level dedicated settings
+    if (updates.serverDescription !== undefined) d.ServerDescription = updates.serverDescription;
+    if (updates.password !== undefined) d.Password = updates.password;
+    if (updates.groupId !== undefined) d.GroupID = updates.groupId.toString();
+    if (updates.maxBackupSaves !== undefined) {
+      d.MaxBackupSaves = updates.maxBackupSaves.toString();
+    }
+
+    serializeSessionSettings(s, updates);
 
     await writeSedsConfig(mainCfg);
 

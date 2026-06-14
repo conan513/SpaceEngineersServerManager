@@ -367,126 +367,897 @@
             <p class="description">Modifies both <code>SpaceEngineers-Dedicated.cfg</code> and the active world's <code>Sandbox_config.sbc</code> files.</p>
 
             <form id="config-form" class="config-form">
-              <div class="form-grid">
+              <div class="config-accordion">
+ 
+                 <!-- Accordion 1: Server Core & Visibility -->
+                 <details open>
+                   <summary>🌐 Server Core & Visibility</summary>
+                   <div class="config-accordion-content">
+                     <div class="inputs-row">
+                       <div class="form-group">
+                         <label for="cfg-serverName">Server Name</label>
+                         <input type="text" id="cfg-serverName" required>
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-port">Port</label>
+                         <input type="number" id="cfg-port" required>
+                       </div>
+                     </div>
+                     <div class="inputs-row">
+                       <div class="form-group">
+                         <label for="cfg-ip">Bind IP Address</label>
+                         <input type="text" id="cfg-ip" required>
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-worldName">Active World Folder</label>
+                         <select id="cfg-worldName">
+                           <option value="Default World">Default World</option>
+                         </select>
+                       </div>
+                     </div>
+                     <div class="inputs-row">
+                       <div class="form-group">
+                         <label for="cfg-password">Server Password</label>
+                         <input type="password" id="cfg-password" placeholder="Leave empty for no password">
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-groupId">Steam Group ID</label>
+                         <input type="text" id="cfg-groupId" placeholder="e.g. 0 (disabled)">
+                       </div>
+                     </div>
+                     <div class="inputs-row">
+                       <div class="form-group">
+                         <label for="cfg-serverDescription">Server Description</label>
+                         <input type="text" id="cfg-serverDescription" placeholder="Description shown in server browser">
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-onlineMode">Online Mode</label>
+                         <select id="cfg-onlineMode">
+                           <option value="PUBLIC">Public</option>
+                           <option value="FRIENDS">Friends</option>
+                           <option value="PRIVATE">Private</option>
+                           <option value="OFFLINE">Offline</option>
+                         </select>
+                       </div>
+                     </div>
+                     <div class="inputs-row">
+                       <div class="form-group">
+                         <label for="cfg-gameMode">Game Mode</label>
+                         <select id="cfg-gameMode">
+                           <option value="Survival">Survival</option>
+                           <option value="Creative">Creative</option>
+                         </select>
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-maxPlayers">Max Players</label>
+                         <input type="number" id="cfg-maxPlayers" min="1" max="32">
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-maxBackupSaves">Max Backup Saves</label>
+                         <input type="number" id="cfg-maxBackupSaves" min="1" max="100">
+                       </div>
+                     </div>
+                     <div class="inputs-row">
+                       <div class="form-group checkbox-group">
+                         <input type="checkbox" id="cfg-pauseGameWhenEmpty">
+                         <label for="cfg-pauseGameWhenEmpty">Pause game when empty</label>
+                       </div>
+                       <div class="form-group checkbox-group">
+                         <input type="checkbox" id="cfg-ignoreLastSession">
+                         <label for="cfg-ignoreLastSession">Ignore last session (fresh boot)</label>
+                       </div>
+                     </div>
+                   </div>
+                 </details>
 
-                <!-- General Section -->
-                <div class="form-section span-2">
-                  <h4>General Server Properties</h4>
-                  <div class="inputs-row">
-                    <div class="form-group">
-                      <label for="cfg-serverName">Server Name</label>
-                      <input type="text" id="cfg-serverName" required>
-                    </div>
-                    <div class="form-group">
-                      <label for="cfg-port">Port</label>
-                      <input type="number" id="cfg-port" required>
-                    </div>
-                  </div>
-                  <div class="inputs-row">
-                    <div class="form-group">
-                      <label for="cfg-ip">Bind IP Address</label>
-                      <input type="text" id="cfg-ip" required>
-                    </div>
-                    <div class="form-group">
-                      <label for="cfg-worldName">Active World Folder</label>
-                      <select id="cfg-worldName">
-                        <option value="Default World">Default World</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div class="inputs-row">
-                    <div class="form-group checkbox-group">
-                      <input type="checkbox" id="cfg-pauseGameWhenEmpty">
-                      <label for="cfg-pauseGameWhenEmpty">Pause game when empty</label>
-                    </div>
-                    <div class="form-group checkbox-group">
-                      <input type="checkbox" id="cfg-ignoreLastSession">
-                      <label for="cfg-ignoreLastSession">Ignore last session (fresh boot)</label>
-                    </div>
-                  </div>
-                </div>
+                 <!-- Accordion 2: Speeds & Multipliers -->
+                 <details>
+                   <summary>⚡ Speeds & Multipliers</summary>
+                   <div class="config-accordion-content">
+                     <div class="inputs-row">
+                       <div class="form-group">
+                         <label for="cfg-inventorySizeMultiplier">Player Inventory Multiplier</label>
+                         <input type="number" id="cfg-inventorySizeMultiplier" step="0.1" min="1">
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-blocksInventorySizeMultiplier">Blocks Inventory Multiplier</label>
+                         <input type="number" id="cfg-blocksInventorySizeMultiplier" step="0.1" min="1">
+                       </div>
+                     </div>
+                     <div class="inputs-row">
+                       <div class="form-group">
+                         <label for="cfg-assemblerSpeedMultiplier">Assembler Speed Multiplier</label>
+                         <input type="number" id="cfg-assemblerSpeedMultiplier" step="0.1" min="1">
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-assemblerEfficiencyMultiplier">Assembler Efficiency Multiplier</label>
+                         <input type="number" id="cfg-assemblerEfficiencyMultiplier" step="0.1" min="1">
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-refinerySpeedMultiplier">Refinery Speed Multiplier</label>
+                         <input type="number" id="cfg-refinerySpeedMultiplier" step="0.1" min="1">
+                       </div>
+                     </div>
+                     <div class="inputs-row">
+                       <div class="form-group">
+                         <label for="cfg-welderSpeedMultiplier">Welder Speed Multiplier</label>
+                         <input type="number" id="cfg-welderSpeedMultiplier" step="0.1" min="1">
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-grinderSpeedMultiplier">Grinder Speed Multiplier</label>
+                         <input type="number" id="cfg-grinderSpeedMultiplier" step="0.1" min="1">
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-hackSpeedMultiplier">Hack Speed Multiplier</label>
+                         <input type="number" id="cfg-hackSpeedMultiplier" step="0.01" min="0.01">
+                       </div>
+                     </div>
+                     <div class="inputs-row">
+                       <div class="form-group">
+                         <label for="cfg-spawnShipTimeMultiplier">Spawn Ship Time Multiplier</label>
+                         <input type="number" id="cfg-spawnShipTimeMultiplier" step="0.1" min="0">
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-characterSpeedMultiplier">Character Speed Multiplier</label>
+                         <input type="number" id="cfg-characterSpeedMultiplier" step="0.1" min="0.1">
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-environmentDamageMultiplier">Env Damage Multiplier</label>
+                         <input type="number" id="cfg-environmentDamageMultiplier" step="0.1" min="0">
+                       </div>
+                     </div>
+                     <div class="inputs-row">
+                       <div class="form-group">
+                         <label for="cfg-backpackDespawnTimer">Backpack Despawn (Min)</label>
+                         <input type="number" id="cfg-backpackDespawnTimer" min="1">
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-maxProductionQueueLength">Max Production Queue Length</label>
+                         <input type="number" id="cfg-maxProductionQueueLength" min="1">
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-autoSaveInMinutes">Auto-Save Interval (Minutes)</label>
+                         <input type="number" id="cfg-autoSaveInMinutes" min="1">
+                       </div>
+                     </div>
+                   </div>
+                 </details>
 
-                <!-- Session Settings Section -->
-                <div class="form-section span-2">
-                  <h4>Session & Gameplay Multipliers</h4>
-                  <div class="inputs-row">
-                    <div class="form-group">
-                      <label for="cfg-gameMode">Game Mode</label>
-                      <select id="cfg-gameMode">
-                        <option value="Survival">Survival</option>
-                        <option value="Creative">Creative</option>
-                      </select>
-                    </div>
-                    <div class="form-group">
-                      <label for="cfg-maxPlayers">Max Players</label>
-                      <input type="number" id="cfg-maxPlayers" min="1" max="64">
-                    </div>
-                  </div>
-                  <div class="inputs-row">
-                    <div class="form-group">
-                      <label for="cfg-inventorySizeMultiplier">Inventory Multiplier</label>
-                      <input type="number" id="cfg-inventorySizeMultiplier" step="0.1" min="1">
-                    </div>
-                    <div class="form-group">
-                      <label for="cfg-assemblerSpeedMultiplier">Assembler Speed Multiplier</label>
-                      <input type="number" id="cfg-assemblerSpeedMultiplier" step="0.1" min="1">
-                    </div>
-                  </div>
-                  <div class="inputs-row">
-                    <div class="form-group">
-                      <label for="cfg-refinerySpeedMultiplier">Refinery Speed Multiplier</label>
-                      <input type="number" id="cfg-refinerySpeedMultiplier" step="0.1" min="1">
-                    </div>
-                    <div class="form-group">
-                      <label for="cfg-welderSpeedMultiplier">Welder Speed Multiplier</label>
-                      <input type="number" id="cfg-welderSpeedMultiplier" step="0.1" min="1">
-                    </div>
-                  </div>
-                  <div class="inputs-row">
-                    <div class="form-group">
-                      <label for="cfg-grinderSpeedMultiplier">Grinder Speed Multiplier</label>
-                      <input type="number" id="cfg-grinderSpeedMultiplier" step="0.1" min="1">
-                    </div>
-                    <div class="form-group">
-                      <label for="cfg-autoSaveInMinutes">Auto-Save Interval (Minutes)</label>
-                      <input type="number" id="cfg-autoSaveInMinutes" min="1">
-                    </div>
-                  </div>
-                  <div class="inputs-row">
-                    <div class="form-group">
-                      <label for="cfg-viewDistance">View Distance (m)</label>
-                      <input type="number" id="cfg-viewDistance" min="1000" max="50000" step="500">
-                    </div>
-                    <div class="form-group checkbox-group" style="align-self: center; margin-top: 1.5rem;">
-                      <input type="checkbox" id="cfg-enableIngameScripts">
-                      <label for="cfg-enableIngameScripts">Enable Programmable Blocks (Scripts)</label>
-                    </div>
-                    <div class="form-group checkbox-group" style="align-self: center; margin-top: 1.5rem;">
-                      <input type="checkbox" id="cfg-experimentalMode">
-                      <label for="cfg-experimentalMode">Experimental Mode (Required for Mods)</label>
-                    </div>
-                  </div>
-                </div>
+                 <!-- Accordion 3: Toggles & Gameplay Rules -->
+                 <details>
+                   <summary>🛡️ Toggles & Gameplay Rules</summary>
+                   <div class="config-accordion-content">
+                     <div class="inputs-row" style="flex-wrap: wrap; gap: 1.25rem 1rem;">
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-experimentalMode">
+                         <label for="cfg-experimentalMode">Experimental Mode (Req for mods)</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-enableIngameScripts">
+                         <label for="cfg-enableIngameScripts">Enable Ingame Scripts</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-enableOxygen">
+                         <label for="cfg-enableOxygen">Enable Oxygen</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-enableOxygenPressurization">
+                         <label for="cfg-enableOxygenPressurization">Airtightness (Oxygen Pressurization)</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-enableJetpack">
+                         <label for="cfg-enableJetpack">Jetpack Enabled</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-enableVoxelDestruction">
+                         <label for="cfg-enableVoxelDestruction">Voxel Destruction</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-enable3rdPersonView">
+                         <label for="cfg-enable3rdPersonView">Allow 3rd Person View</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-enableConvertToStation">
+                         <label for="cfg-enableConvertToStation">Allow Convert to Station</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-stationVoxelSupport">
+                         <label for="cfg-stationVoxelSupport">Station Voxel Support</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-enableSpectator">
+                         <label for="cfg-enableSpectator">Allow Spectator Mode</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-enableToolShake">
+                         <label for="cfg-enableToolShake">Tool Shake Enabled</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-weaponsEnabled">
+                         <label for="cfg-weaponsEnabled">Weapons Enabled</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-cargoShipsEnabled">
+                         <label for="cfg-cargoShipsEnabled">Cargo Ships Enabled</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-autoHealing">
+                         <label for="cfg-autoHealing">Auto Healing</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-enableCopyPaste">
+                         <label for="cfg-enableCopyPaste">Creative Copy/Paste</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-adaptiveSimulationQuality">
+                         <label for="cfg-adaptiveSimulationQuality">Adaptive Sim Quality</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-showPlayerNamesOnHud">
+                         <label for="cfg-showPlayerNamesOnHud">Show Player Names on HUD</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-thrusterDamage">
+                         <label for="cfg-thrusterDamage">Thruster Damage</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-respawnShipDelete">
+                         <label for="cfg-respawnShipDelete">Delete Respawn Ship on Logoff</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-resetOwnership">
+                         <label for="cfg-resetOwnership">Reset Grid Ownership on Load</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-realisticSound">
+                         <label for="cfg-realisticSound">Realistic Sound Mode</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-permanentDeath">
+                         <label for="cfg-permanentDeath">Permanent Death</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-enableSaving">
+                         <label for="cfg-enableSaving">Enable Saving</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-infiniteAmmo">
+                         <label for="cfg-infiniteAmmo">Infinite Ammo</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-enableContainerDrops">
+                         <label for="cfg-enableContainerDrops">Spawn Random Cargo Containers</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-destructibleBlocks">
+                         <label for="cfg-destructibleBlocks">Destructible Blocks</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-enableSunRotation">
+                         <label for="cfg-enableSunRotation">Enable Sun Rotation</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-enableRespawnShips">
+                         <label for="cfg-enableRespawnShips">Enable Respawn Ships</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-scenarioEditMode">
+                         <label for="cfg-scenarioEditMode">Scenario Edit Mode</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-scenario">
+                         <label for="cfg-scenario">Is Scenario</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-updateRespawnDictionary">
+                         <label for="cfg-updateRespawnDictionary">Update Respawn Dictionary</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-canJoinRunning">
+                         <label for="cfg-canJoinRunning">Can Join Running Matches</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-spawnWithTools">
+                         <label for="cfg-spawnWithTools">Spawn with Tools</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-blueprintShare">
+                         <label for="cfg-blueprintShare">Enable Faction Blueprint Sharing</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-startInRespawnScreen">
+                         <label for="cfg-startInRespawnScreen">Force Start in Respawn Screen</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-enableResearch">
+                         <label for="cfg-enableResearch">Enable Tech Tree Research</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-enableGoodBotHints">
+                         <label for="cfg-enableGoodBotHints">Enable GoodBot Hints</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-enableAutorespawn">
+                         <label for="cfg-enableAutorespawn">Enable Autorespawn</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-enableBountyContracts">
+                         <label for="cfg-enableBountyContracts">Enable Bounty Contracts</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-enableSupergridding">
+                         <label for="cfg-enableSupergridding">Allow Supergridding</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-enableEconomy">
+                         <label for="cfg-enableEconomy">Enable Economy System</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-weatherSystem">
+                         <label for="cfg-weatherSystem">Enable Dynamic Weather</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-weatherLightingDamage">
+                         <label for="cfg-weatherLightingDamage">Weather Lightning Damage</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-simplifiedSimulation">
+                         <label for="cfg-simplifiedSimulation">Simplified Physics Simulation</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-enablePcuTrading">
+                         <label for="cfg-enablePcuTrading">Allow PCU Trading</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-familySharing">
+                         <label for="cfg-familySharing">Allow Steam Family Sharing</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-enableSelectivePhysicsUpdates">
+                         <label for="cfg-enableSelectivePhysicsUpdates">Selective Physics Updates</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-predefinedAsteroids">
+                         <label for="cfg-predefinedAsteroids">Predefined Asteroids</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-useConsolePCU">
+                         <label for="cfg-useConsolePCU">Use Console PCU Limits</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-offensiveWordsFiltering">
+                         <label for="cfg-offensiveWordsFiltering">Offensive Words Filter</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-adjustableMaxVehicleSpeed">
+                         <label for="cfg-adjustableMaxVehicleSpeed">Adjustable Max Speed</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-enableMatchComponent">
+                         <label for="cfg-enableMatchComponent">Enable Match Component</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-enableFriendlyFire">
+                         <label for="cfg-enableFriendlyFire">Enable Friendly Fire</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-enableTeamBalancing">
+                         <label for="cfg-enableTeamBalancing">Enable Team Balancing</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-enableRecoil">
+                         <label for="cfg-enableRecoil">Weapons Recoil Enabled</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-enableGamepadAimAssist">
+                         <label for="cfg-enableGamepadAimAssist">Gamepad Aim Assist</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-enableTeamScoreCounters">
+                         <label for="cfg-enableTeamScoreCounters">Team Score Counters</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-enableSpaceSuitRespawn">
+                         <label for="cfg-enableSpaceSuitRespawn">Suit Respawn Enabled</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-enableFactionVoiceChat">
+                         <label for="cfg-enableFactionVoiceChat">Faction Voice Chat</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-enableOrca">
+                         <label for="cfg-enableOrca">Enable ORCA Engine</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-scrapEnabled">
+                         <label for="cfg-scrapEnabled">Scrap Generation Enabled</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-temporaryContainers">
+                         <label for="cfg-temporaryContainers">Spawn Temporary Containers</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-enableShareInertiaTensor">
+                         <label for="cfg-enableShareInertiaTensor">Share Inertia Tensor</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-enableUnsafePistonImpulses">
+                         <label for="cfg-enableUnsafePistonImpulses">Allow Unsafe Piston Impulses</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-enableUnsafeRotorTorques">
+                         <label for="cfg-enableUnsafeRotorTorques">Allow Unsafe Rotor Torques</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-enableRadiation">
+                         <label for="cfg-enableRadiation">Enable Space Radiation</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-resetForageableItems">
+                         <label for="cfg-resetForageableItems">Reset Forageable Items</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-enableSurvivalBuffs">
+                         <label for="cfg-enableSurvivalBuffs">Enable Survival Buffs</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-enableReducedStatsOnRespawn">
+                         <label for="cfg-enableReducedStatsOnRespawn">Reduced Stats on Respawn</label>
+                       </div>
+                       <div class="form-group checkbox-group" style="min-width: 220px;">
+                         <input type="checkbox" id="cfg-enableVoxelHand">
+                         <label for="cfg-enableVoxelHand">Enable Voxel Hand Tools</label>
+                       </div>
+                     </div>
+                   </div>
+                 </details>
 
-                <!-- Manager Config Section -->
-                <div class="form-section span-2 border-top">
-                  <h4>Server Manager Auto-Backups Settings</h4>
-                  <div class="inputs-row">
-                    <div class="form-group checkbox-group" style="align-self: center;">
-                      <input type="checkbox" id="mgr-autoBackupEnabled">
-                      <label for="mgr-autoBackupEnabled">Enable Automated Backups</label>
-                    </div>
-                    <div class="form-group">
-                      <label for="mgr-autoBackupIntervalHours">Backup Interval (Hours)</label>
-                      <input type="number" id="mgr-autoBackupIntervalHours" min="1" max="168">
-                    </div>
-                    <div class="form-group">
-                      <label for="mgr-autoBackupRetentionCount">Backups to Retain</label>
-                      <input type="number" id="mgr-autoBackupRetentionCount" min="1" max="100">
-                    </div>
-                  </div>
-                </div>
+                 <!-- Accordion 4: Limits & Spawning -->
+                 <details>
+                   <summary>🚧 Limits & Spawning</summary>
+                   <div class="config-accordion-content">
+                     <div class="inputs-row">
+                       <div class="form-group">
+                         <label for="cfg-viewDistance">View Distance (m)</label>
+                         <input type="number" id="cfg-viewDistance" min="1000" max="50000" step="500">
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-syncDistance">Network Sync Distance (m)</label>
+                         <input type="number" id="cfg-syncDistance" min="1000" max="50000" step="500">
+                       </div>
+                     </div>
+                     <div class="inputs-row">
+                       <div class="form-group">
+                         <label for="cfg-maxFloatingObjects">Max Floating Objects</label>
+                         <input type="number" id="cfg-maxFloatingObjects" min="1" max="1024">
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-totalBotLimit">Total AI Bot Limit</label>
+                         <input type="number" id="cfg-totalBotLimit" min="0">
+                       </div>
+                     </div>
+                     <div class="inputs-row">
+                       <div class="form-group">
+                         <label for="cfg-maxGridSize">Max Grid Size (Blocks)</label>
+                         <input type="number" id="cfg-maxGridSize" min="0" placeholder="0 (Unlimited)">
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-maxBlocksPerPlayer">Max Blocks Per Player</label>
+                         <input type="number" id="cfg-maxBlocksPerPlayer" min="0" placeholder="0 (Unlimited)">
+                       </div>
+                     </div>
+                     <div class="inputs-row">
+                       <div class="form-group">
+                         <label for="cfg-totalPCU">Total World PCU Limit</label>
+                         <input type="number" id="cfg-totalPCU" min="0" placeholder="e.g. 100000">
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-piratePCU">Pirate Faction PCU Limit</label>
+                         <input type="number" id="cfg-piratePCU" min="0">
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-globalEncounterPCU">Global Encounter PCU</label>
+                         <input type="number" id="cfg-globalEncounterPCU" min="0">
+                       </div>
+                     </div>
+                     <div class="inputs-row">
+                       <div class="form-group">
+                         <label for="cfg-maxFactionsCount">Max Factions Count</label>
+                         <input type="number" id="cfg-maxFactionsCount" min="0" placeholder="0 (Unlimited)">
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-worldSizeKm">World Size (Diameter in km)</label>
+                         <input type="number" id="cfg-worldSizeKm" min="0" placeholder="0 (Infinite)">
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-maxPlanets">Max Planets Count</label>
+                         <input type="number" id="cfg-maxPlanets" min="0">
+                       </div>
+                     </div>
+                     <div class="inputs-row">
+                       <div class="form-group">
+                         <label for="cfg-optimalSpawnDistance">Optimal Spawn Distance (m)</label>
+                         <input type="number" id="cfg-optimalSpawnDistance" min="0">
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-minimumWorldSize">Minimum World Size (m)</label>
+                         <input type="number" id="cfg-minimumWorldSize" min="0">
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-maxCargoBags">Max Cargo Bags</label>
+                         <input type="number" id="cfg-maxCargoBags" min="0">
+                       </div>
+                     </div>
+                     <div class="inputs-row">
+                       <div class="form-group">
+                         <label for="cfg-maxHudChatMessageCount">Max HUD Chat Messages</label>
+                         <input type="number" id="cfg-maxHudChatMessageCount" min="1">
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-solarRadiationIntensity">Solar Radiation Intensity</label>
+                         <input type="number" id="cfg-solarRadiationIntensity" min="0">
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-physicsIterations">Physics Iterations</label>
+                         <input type="number" id="cfg-physicsIterations" min="1" max="64">
+                       </div>
+                     </div>
+                     <div class="inputs-row">
+                       <div class="form-group">
+                         <label for="cfg-proceduralDensity">Procedural Asteroids Density</label>
+                         <input type="number" id="cfg-proceduralDensity" min="0" max="1" step="0.01">
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-proceduralSeed">Procedural Seed</label>
+                         <input type="number" id="cfg-proceduralSeed" placeholder="e.g. 0">
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-blueprintShareTimeout">Blueprint Share Timeout (s)</label>
+                         <input type="number" id="cfg-blueprintShareTimeout" min="0">
+                       </div>
+                     </div>
+                     <div class="inputs-row">
+                       <div class="form-group">
+                         <label for="cfg-environmentHostility">Environment Hostility</label>
+                         <select id="cfg-environmentHostility">
+                           <option value="SAFE">Safe</option>
+                           <option value="NORMAL">Normal</option>
+                           <option value="CATACLYSM">Cataclysm</option>
+                           <option value="CATACLYSM_UNPREDICTABLE">Cataclysm Unpredictable</option>
+                         </select>
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-blockLimitsEnabled">Block Limits Mode</label>
+                         <select id="cfg-blockLimitsEnabled">
+                           <option value="NONE">Disabled</option>
+                           <option value="GLOBALLY">Enforced Globally</option>
+                           <option value="PER_PLAYER">Per Player Limits</option>
+                           <option value="PER_FACTION">Per Faction Limits</option>
+                         </select>
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-limitBlocksBy">Limit Blocks By</label>
+                         <select id="cfg-limitBlocksBy">
+                           <option value="BlockPairName">Block Pair Name</option>
+                           <option value="BlockName">Block Type Name</option>
+                         </select>
+                       </div>
+                     </div>
+                     <div class="inputs-row">
+                       <div class="form-group checkbox-group" style="align-self: center;">
+                         <input type="checkbox" id="cfg-enableBlockLimits">
+                         <label for="cfg-enableBlockLimits">Enforce Limits & PCU Rules</label>
+                       </div>
+                     </div>
+                   </div>
+                 </details>
 
+                 <!-- Accordion 5: Trash Removal & Cleanup -->
+                 <details>
+                   <summary>🧹 Trash Removal & Cleanup</summary>
+                   <div class="config-accordion-content">
+                     <div class="inputs-row">
+                       <div class="form-group checkbox-group">
+                         <input type="checkbox" id="cfg-trashRemovalEnabled">
+                         <label for="cfg-trashRemovalEnabled">Enable Trash Auto-Removal</label>
+                       </div>
+                       <div class="form-group checkbox-group">
+                         <input type="checkbox" id="cfg-voxelTrashRemovalEnabled">
+                         <label for="cfg-voxelTrashRemovalEnabled">Enable Voxel Trash Removal</label>
+                       </div>
+                       <div class="form-group checkbox-group">
+                         <input type="checkbox" id="cfg-enableTrashSettingsPlatformOverride">
+                         <label for="cfg-enableTrashSettingsPlatformOverride">Platform Override Rules</label>
+                       </div>
+                     </div>
+                     <div class="inputs-row">
+                       <div class="form-group">
+                         <label for="cfg-stopGridsPeriodMin">Stop Grids Period (Min)</label>
+                         <input type="number" id="cfg-stopGridsPeriodMin" min="1">
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-trashFlagsValue">Trash Flags Bitmask</label>
+                         <input type="number" id="cfg-trashFlagsValue" min="0">
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-afkTimeountMin">AFK Kick Timeout (Min)</label>
+                         <input type="number" id="cfg-afkTimeountMin" min="0" placeholder="0 (Disabled)">
+                       </div>
+                     </div>
+                     <div class="inputs-row">
+                       <div class="form-group">
+                         <label for="cfg-blockCountThreshold">Cleanup Block Count Threshold</label>
+                         <input type="number" id="cfg-blockCountThreshold" min="0">
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-playerDistanceThreshold">Player Distance Threshold (m)</label>
+                         <input type="number" id="cfg-playerDistanceThreshold" min="0">
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-optimalGridCount">Optimal Grid Count</label>
+                         <input type="number" id="cfg-optimalGridCount" min="0">
+                       </div>
+                     </div>
+                     <div class="inputs-row">
+                       <div class="form-group">
+                         <label for="cfg-playerInactivityThreshold">Player Inactivity Threshold (Days)</label>
+                         <input type="number" id="cfg-playerInactivityThreshold" min="0">
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-playerCharacterRemovalThreshold">Character Despawn Threshold (m)</label>
+                         <input type="number" id="cfg-playerCharacterRemovalThreshold" min="0">
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-removeOldIdentitiesH">Identity Prune Age (Hours)</label>
+                         <input type="number" id="cfg-removeOldIdentitiesH" min="0" placeholder="0 (Disabled)">
+                       </div>
+                     </div>
+                     <div class="inputs-row">
+                       <div class="form-group">
+                         <label for="cfg-voxelPlayerDistanceThreshold">Voxel Player Dist Threshold (m)</label>
+                         <input type="number" id="cfg-voxelPlayerDistanceThreshold" min="0">
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-voxelGridDistanceThreshold">Voxel Grid Dist Threshold (m)</label>
+                         <input type="number" id="cfg-voxelGridDistanceThreshold" min="0">
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-voxelAgeThreshold">Voxel Age Threshold (Hours)</label>
+                         <input type="number" id="cfg-voxelAgeThreshold" min="0">
+                       </div>
+                     </div>
+                     <div class="inputs-row">
+                       <div class="form-group">
+                         <label for="cfg-trashCleanerCargoBagsMaxLiveTime">Cargo Bags Max Lifetime (Min)</label>
+                         <input type="number" id="cfg-trashCleanerCargoBagsMaxLiveTime" min="1">
+                       </div>
+                     </div>
+                   </div>
+                 </details>
+
+                 <!-- Accordion 6: Encounters & AI -->
+                 <details>
+                   <summary>🛸 Encounters & AI</summary>
+                   <div class="config-accordion-content">
+                     <div class="inputs-row">
+                       <div class="form-group checkbox-group">
+                         <input type="checkbox" id="cfg-enableDrones">
+                         <label for="cfg-enableDrones">Enable Enemy Drones AI</label>
+                       </div>
+                       <div class="form-group checkbox-group">
+                         <input type="checkbox" id="cfg-enableWolfs">
+                         <label for="cfg-enableWolfs">Enable Wolves (Planetary Threat)</label>
+                       </div>
+                       <div class="form-group checkbox-group">
+                         <input type="checkbox" id="cfg-enableSpiders">
+                         <label for="cfg-enableSpiders">Enable Spiders (Sabiroids)</label>
+                       </div>
+                     </div>
+                     <div class="inputs-row">
+                       <div class="form-group">
+                         <label for="cfg-maxDrones">Max Enemy Drones Count</label>
+                         <input type="number" id="cfg-maxDrones" min="0">
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-globalEncounterTimer">Global Space Encounter Timer (Min)</label>
+                         <input type="number" id="cfg-globalEncounterTimer" min="0">
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-globalEncounterCap">Global Space Encounter Cap</label>
+                         <input type="number" id="cfg-globalEncounterCap" min="0">
+                       </div>
+                     </div>
+                     <div class="inputs-row">
+                       <div class="form-group checkbox-group">
+                         <input type="checkbox" id="cfg-globalEncounterEnableRemovalTimer">
+                         <label for="cfg-globalEncounterEnableRemovalTimer">Enable Encounter Removal Timers</label>
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-globalEncounterMinRemovalTimer">Min Removal Timer (s)</label>
+                         <input type="number" id="cfg-globalEncounterMinRemovalTimer" min="0">
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-globalEncounterMaxRemovalTimer">Max Removal Timer (s)</label>
+                         <input type="number" id="cfg-globalEncounterMaxRemovalTimer" min="0">
+                       </div>
+                     </div>
+                     <div class="inputs-row">
+                       <div class="form-group">
+                         <label for="cfg-globalEncounterRemovalTimeClock">Removal Check Period (s)</label>
+                         <input type="number" id="cfg-globalEncounterRemovalTimeClock" min="0">
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-encounterDensity">Encounter Spawn Density</label>
+                         <input type="number" id="cfg-encounterDensity" min="0" max="1" step="0.01">
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-encounterGeneratorVersion">Encounter Generator Version</label>
+                         <input type="number" id="cfg-encounterGeneratorVersion" min="1">
+                       </div>
+                     </div>
+                     <div class="inputs-row border-top">
+                       <div class="form-group checkbox-group">
+                         <input type="checkbox" id="cfg-enablePlanetaryEncounters">
+                         <label for="cfg-enablePlanetaryEncounters">Enable Planetary Encounters (Cargo/Bases)</label>
+                       </div>
+                     </div>
+                     <div class="inputs-row">
+                       <div class="form-group">
+                         <label for="cfg-planetaryEncounterTimerMin">Planetary Encounter Timer Min (Min)</label>
+                         <input type="number" id="cfg-planetaryEncounterTimerMin" min="0">
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-planetaryEncounterTimerMax">Planetary Encounter Timer Max (Min)</label>
+                         <input type="number" id="cfg-planetaryEncounterTimerMax" min="0">
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-planetaryEncounterTimerFirst">Planetary Timer First (Min)</label>
+                         <input type="number" id="cfg-planetaryEncounterTimerFirst" min="0">
+                       </div>
+                     </div>
+                     <div class="inputs-row">
+                       <div class="form-group">
+                         <label for="cfg-planetaryEncounterExistingStructuresRange">Existing Structure Avoidance (m)</label>
+                         <input type="number" id="cfg-planetaryEncounterExistingStructuresRange" min="0">
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-planetaryEncounterAreaLockdownRange">Area Lockdown Range (m)</label>
+                         <input type="number" id="cfg-planetaryEncounterAreaLockdownRange" min="0">
+                       </div>
+                     </div>
+                     <div class="inputs-row">
+                       <div class="form-group">
+                         <label for="cfg-planetaryEncounterDesiredSpawnRange">Desired Spawn Range (m)</label>
+                         <input type="number" id="cfg-planetaryEncounterDesiredSpawnRange" min="0">
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-planetaryEncounterPresenceRange">Planetary Presence Range (m)</label>
+                         <input type="number" id="cfg-planetaryEncounterPresenceRange" min="0">
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-planetaryEncounterDespawnTimeout">Planetary Despawn Timeout (s)</label>
+                         <input type="number" id="cfg-planetaryEncounterDespawnTimeout" min="0">
+                       </div>
+                     </div>
+                   </div>
+                 </details>
+
+                 <!-- Accordion 7: Economy & Factions -->
+                 <details>
+                   <summary>💰 Economy & Factions</summary>
+                   <div class="config-accordion-content">
+                     <div class="inputs-row">
+                       <div class="form-group checkbox-group">
+                         <input type="checkbox" id="cfg-enableFactionPlayerNames">
+                         <label for="cfg-enableFactionPlayerNames">Enable Faction Player Names</label>
+                       </div>
+                       <div class="form-group checkbox-group">
+                         <input type="checkbox" id="cfg-enableFactionVoiceChat">
+                         <label for="cfg-enableFactionVoiceChat">Enable Faction Voice Chat</label>
+                       </div>
+                     </div>
+                     <div class="inputs-row">
+                       <div class="form-group">
+                         <label for="cfg-tradeFactionsCount">Trade Factions Spawn Count</label>
+                         <input type="number" id="cfg-tradeFactionsCount" min="0">
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-stationsDistanceInnerRadius">Stations Distance Inner Radius (m)</label>
+                         <input type="number" id="cfg-stationsDistanceInnerRadius" min="0">
+                       </div>
+                     </div>
+                     <div class="inputs-row">
+                       <div class="form-group">
+                         <label for="cfg-stationsDistanceOuterRadiusStart">Stations Outer Start Radius (m)</label>
+                         <input type="number" id="cfg-stationsDistanceOuterRadiusStart" min="0">
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-stationsDistanceOuterRadiusEnd">Stations Outer End Radius (m)</label>
+                         <input type="number" id="cfg-stationsDistanceOuterRadiusEnd" min="0">
+                       </div>
+                     </div>
+                     <div class="inputs-row">
+                       <div class="form-group">
+                         <label for="cfg-economyTickInSeconds">Economy Tick Interval (s)</label>
+                         <input type="number" id="cfg-economyTickInSeconds" min="1">
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-npcGridClaimTimeLimit">NPC Grid Claim Time Limit (Min)</label>
+                         <input type="number" id="cfg-npcGridClaimTimeLimit" min="0">
+                       </div>
+                     </div>
+                   </div>
+                 </details>
+
+                 <!-- Accordion 8: Grid Storage -->
+                 <details>
+                   <summary>📦 Grid Storage</summary>
+                   <div class="config-accordion-content">
+                     <div class="inputs-row">
+                       <div class="form-group checkbox-group">
+                         <input type="checkbox" id="cfg-gridStorageAllowsInventory">
+                         <label for="cfg-gridStorageAllowsInventory">Allows Inventory Items Storage</label>
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-gridStorageMaxPerPlayer">Grid Storage Max Grids Per Player</label>
+                         <input type="number" id="cfg-gridStorageMaxPerPlayer" min="0">
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-gridStorageQueueLimit">Grid Storage Queue Limit</label>
+                         <input type="number" id="cfg-gridStorageQueueLimit" min="1">
+                       </div>
+                     </div>
+                     <div class="inputs-row">
+                       <div class="form-group">
+                         <label for="cfg-gridStorageRetrievalTimeMaxMinutes">Retrieval Max Time (Min)</label>
+                         <input type="number" id="cfg-gridStorageRetrievalTimeMaxMinutes" min="0">
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-gridStorageRetrievalTimeMinMinutes">Retrieval Min Time (Min)</label>
+                         <input type="number" id="cfg-gridStorageRetrievalTimeMinMinutes" min="0">
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-gridStorageRetrievalTimeMultiplier">Retrieval Time Multiplier</label>
+                         <input type="number" id="cfg-gridStorageRetrievalTimeMultiplier" step="0.1" min="0">
+                       </div>
+                     </div>
+                     <div class="inputs-row">
+                       <div class="form-group">
+                         <label for="cfg-gridStorageMinutesPerPCU">Minutes Cost Per PCU</label>
+                         <input type="number" id="cfg-gridStorageMinutesPerPCU" step="0.0001" min="0">
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-gridStorageExpediteFactor">Expedite Time Factor</label>
+                         <input type="number" id="cfg-gridStorageExpediteFactor" step="0.01" min="0" max="1">
+                       </div>
+                       <div class="form-group">
+                         <label for="cfg-gridStorageExpediteCostPerSecond">Expedite Credit Cost Per Sec</label>
+                         <input type="number" id="cfg-gridStorageExpediteCostPerSecond" min="0">
+                       </div>
+                     </div>
+                   </div>
+                 </details>
+
+                 <!-- Accordion 9: Server Manager Auto-Backups Settings -->
+                 <details>
+                   <summary>💾 Server Manager Auto-Backups</summary>
+                   <div class="config-accordion-content">
+                     <div class="inputs-row">
+                       <div class="form-group checkbox-group" style="align-self: center;">
+                         <input type="checkbox" id="mgr-autoBackupEnabled">
+                         <label for="mgr-autoBackupEnabled">Enable Automated Backups</label>
+                       </div>
+                       <div class="form-group">
+                         <label for="mgr-autoBackupIntervalHours">Backup Interval (Hours)</label>
+                         <input type="number" id="mgr-autoBackupIntervalHours" min="1" max="168">
+                       </div>
+                       <div class="form-group">
+                         <label for="mgr-autoBackupRetentionCount">Backups to Retain</label>
+                         <input type="number" id="mgr-autoBackupRetentionCount" min="1" max="100">
+                       </div>
+                     </div>
+                   </div>
+                 </details>
               </div>
               <div class="form-footer">
                 <button type="submit" class="btn btn-success">Save Configurations</button>
