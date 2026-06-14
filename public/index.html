@@ -3,16 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Space Engineers Server Manager</title>
+  <title>Space Engineers Server</title>
+  <meta name="description" content="Space Engineers Dedicated Server — live status, active mods, and server information.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚀</text></svg>">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☄️</text></svg>">
 </head>
 <body>
   <div class="app-container">
-    
+
     <!-- Sidebar Navigation -->
     <aside class="sidebar">
       <div class="sidebar-brand">
@@ -22,37 +23,73 @@
           <p>Server Manager</p>
         </div>
       </div>
-      <nav class="sidebar-nav">
-        <button class="nav-btn active" data-tab="dashboard">
-          <span class="nav-icon">📊</span> Dashboard
-        </button>
-        <button class="nav-btn" data-tab="settings">
-          <span class="nav-icon">⚙️</span> Game Settings
-        </button>
-        <button class="nav-btn" data-tab="mods">
-          <span class="nav-icon">🧩</span> Mods Manager
-        </button>
-        <button class="nav-btn" data-tab="backups">
-          <span class="nav-icon">💾</span> Saves & Backups
-        </button>
-        <button class="nav-btn" data-tab="console">
-          <span class="nav-icon">📟</span> Live Console
-        </button>
-      </nav>
-      <div class="sidebar-footer">
-        <p>Running under User Account</p>
-        <span id="system-user">Arch Linux</span>
+
+      <!-- Public Navigation -->
+      <div id="public-nav" class="sidebar-nav-section">
+        <div class="nav-section-label">PUBLIC</div>
+        <nav class="sidebar-nav">
+          <button class="nav-btn active" data-tab="serverinfo" id="nav-serverinfo">
+            <span class="nav-icon">🌐</span> Server Info
+          </button>
+          <button class="nav-btn" data-tab="activemods" id="nav-activemods">
+            <span class="nav-icon">🧩</span> Active Mods
+          </button>
+        </nav>
+      </div>
+
+      <!-- Admin Navigation (hidden until logged in) -->
+      <div id="admin-nav" class="sidebar-nav-section hidden">
+        <div class="nav-section-label">ADMIN</div>
+        <nav class="sidebar-nav">
+          <button class="nav-btn" data-tab="dashboard" id="nav-dashboard">
+            <span class="nav-icon">📊</span> Dashboard
+          </button>
+          <button class="nav-btn" data-tab="settings" id="nav-settings">
+            <span class="nav-icon">⚙️</span> Game Settings
+          </button>
+          <button class="nav-btn" data-tab="mods" id="nav-mods">
+            <span class="nav-icon">🛠️</span> Mods Manager
+          </button>
+          <button class="nav-btn" data-tab="backups" id="nav-backups">
+            <span class="nav-icon">💾</span> Saves & Backups
+          </button>
+          <button class="nav-btn" data-tab="console" id="nav-console">
+            <span class="nav-icon">📟</span> Live Console
+          </button>
+        </nav>
+      </div>
+
+      <div style="flex-grow:1"></div>
+
+      <!-- Admin Auth Section in sidebar bottom -->
+      <div id="sidebar-auth-area">
+        <!-- When NOT logged in: show login button -->
+        <div id="sidebar-login-btn-wrap">
+          <button id="btn-goto-admin" class="btn btn-outline btn-admin-access" onclick="window.app && window.app.switchTab('adminlogin')">
+            <span>🔐</span> Admin Login
+          </button>
+        </div>
+        <!-- When logged in: show logout button -->
+        <div id="sidebar-logout-wrap" class="hidden">
+          <div class="sidebar-footer">
+            <p>Logged in as</p>
+            <span>Administrator</span>
+          </div>
+          <button id="btn-logout" class="btn btn-outline btn-logout">
+            <span>🚪</span> Logout
+          </button>
+        </div>
       </div>
     </aside>
 
     <!-- Main Content Area -->
     <main class="main-content">
-      
+
       <!-- Top Header / Quick Stats -->
       <header class="header">
         <div class="header-title">
-          <h2 id="current-tab-title">Dashboard</h2>
-          <p id="current-tab-subtitle">Real-time server monitoring and control</p>
+          <h2 id="current-tab-title">Server Info</h2>
+          <p id="current-tab-subtitle">Live server status and information</p>
         </div>
         <div class="quick-stats">
           <div class="quick-stat-card">
@@ -89,10 +126,192 @@
       <!-- Content Panels -->
       <div class="content-body">
 
-        <!-- 1. DASHBOARD TAB -->
-        <section id="tab-dashboard" class="tab-panel active">
+        <!-- PUBLIC: SERVER INFO TAB -->
+        <section id="tab-serverinfo" class="tab-panel active">
           <div class="grid-layout">
-            
+
+            <!-- Live Status Card -->
+            <div class="glass-card public-status-card span-2">
+              <div class="public-server-hero">
+                <div class="server-status-beacon" id="server-beacon">
+                  <div class="beacon-ring"></div>
+                  <div class="beacon-dot"></div>
+                </div>
+                <div class="server-hero-info">
+                  <h2 id="public-server-name">Space Engineers Server</h2>
+                  <p id="public-server-tagline">Loading server information...</p>
+                </div>
+                <div id="public-status-badge" class="status-badge badge-stopped">STOPPED</div>
+              </div>
+            </div>
+
+            <!-- Server Details Card -->
+            <div class="glass-card">
+              <h3>🛰️ Server Details</h3>
+              <div class="info-list">
+                <div class="info-row">
+                  <span class="info-label">Game Port</span>
+                  <span class="info-value" id="pub-port">—</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Game Mode</span>
+                  <span class="info-value" id="pub-gamemode">—</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Max Players</span>
+                  <span class="info-value" id="pub-maxplayers">—</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Active World</span>
+                  <span class="info-value" id="pub-world">—</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Resources Card -->
+            <div class="glass-card monitoring-card">
+              <h3>📈 Resource Usage</h3>
+              <div class="monitoring-meter-group">
+                <div class="meter-box">
+                  <div class="meter-ring">
+                    <svg viewBox="0 0 36 36" class="circular-chart cyan">
+                      <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                      <path id="cpu-ring" class="circle" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                      <text x="18" y="20.35" class="percentage" id="cpu-ring-text">0%</text>
+                    </svg>
+                  </div>
+                  <span class="meter-label">CPU LOAD</span>
+                </div>
+                <div class="meter-box">
+                  <div class="meter-ring">
+                    <svg viewBox="0 0 36 36" class="circular-chart purple">
+                      <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                      <path id="mem-ring" class="circle" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                      <text x="18" y="20.35" class="percentage" id="mem-ring-text">0%</text>
+                    </svg>
+                  </div>
+                  <span class="meter-label">RAM (8GB max)</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Uptime/Stats Card -->
+            <div class="glass-card span-3">
+              <h3>📡 Live Stats</h3>
+              <div class="live-stats-row">
+                <div class="live-stat">
+                  <div class="live-stat-icon">⏱️</div>
+                  <div class="live-stat-value" id="pub-uptime">00:00:00</div>
+                  <div class="live-stat-label">Server Uptime</div>
+                </div>
+                <div class="live-stat-divider"></div>
+                <div class="live-stat">
+                  <div class="live-stat-icon">💻</div>
+                  <div class="live-stat-value" id="pub-cpu">0%</div>
+                  <div class="live-stat-label">CPU Usage</div>
+                </div>
+                <div class="live-stat-divider"></div>
+                <div class="live-stat">
+                  <div class="live-stat-icon">🧠</div>
+                  <div class="live-stat-value" id="pub-mem">0 MB</div>
+                  <div class="live-stat-label">Memory Used</div>
+                </div>
+                <div class="live-stat-divider"></div>
+                <div class="live-stat">
+                  <div class="live-stat-icon">🧩</div>
+                  <div class="live-stat-value" id="pub-modcount">0</div>
+                  <div class="live-stat-label">Active Mods</div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- PUBLIC: ACTIVE MODS TAB -->
+        <section id="tab-activemods" class="tab-panel">
+          <div class="glass-card">
+            <h3>🧩 Active Mods</h3>
+            <p class="description">Mods currently loaded on this Space Engineers server.</p>
+            <div class="table-wrapper">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Mod Name</th>
+                    <th>Workshop ID</th>
+                    <th>Steam Link</th>
+                  </tr>
+                </thead>
+                <tbody id="public-mods-table-body">
+                  <tr><td colspan="3" class="text-center">Loading mods...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- AUTH: ADMIN LOGIN / SETUP TAB -->
+        <section id="tab-adminlogin" class="tab-panel">
+          <div class="auth-center-wrap">
+
+            <!-- Setup Panel (first time) -->
+            <div id="auth-setup-panel" class="auth-glass-card hidden">
+              <div class="auth-icon-wrap">
+                <div class="auth-icon">🔐</div>
+              </div>
+              <h2 class="auth-title">Welcome, Administrator</h2>
+              <p class="auth-subtitle">This is the first time the admin panel has been accessed. Create a password to secure the control dashboard.</p>
+              <form id="setup-form" class="auth-form">
+                <div class="auth-form-group">
+                  <label for="setup-password">New Password (min. 6 characters)</label>
+                  <input type="password" id="setup-password" placeholder="Enter a strong password..." autocomplete="new-password">
+                </div>
+                <div class="auth-form-group">
+                  <label for="setup-password-confirm">Confirm Password</label>
+                  <input type="password" id="setup-password-confirm" placeholder="Repeat your password..." autocomplete="new-password">
+                </div>
+                <div id="setup-error" class="auth-error hidden"></div>
+                <button type="submit" class="btn btn-success btn-auth" id="btn-setup-submit">
+                  <span>🚀</span> Set Password & Enter Admin Panel
+                </button>
+              </form>
+            </div>
+
+            <!-- Login Panel (subsequent visits) -->
+            <div id="auth-login-panel" class="auth-glass-card hidden">
+              <div class="auth-icon-wrap">
+                <div class="auth-icon">🛡️</div>
+              </div>
+              <h2 class="auth-title">Admin Access</h2>
+              <p class="auth-subtitle">Enter the admin password to access the server control dashboard.</p>
+              <form id="login-form" class="auth-form">
+                <div class="auth-form-group">
+                  <label for="login-password">Admin Password</label>
+                  <input type="password" id="login-password" placeholder="Enter password..." autocomplete="current-password">
+                </div>
+                <div id="login-error" class="auth-error hidden"></div>
+                <button type="submit" class="btn btn-primary btn-auth" id="btn-login-submit">
+                  <span>🔓</span> Log In
+                </button>
+              </form>
+            </div>
+
+            <!-- Loading state -->
+            <div id="auth-loading-panel" class="auth-glass-card">
+              <div class="auth-icon-wrap">
+                <div class="auth-icon spinning">⏳</div>
+              </div>
+              <h2 class="auth-title">Connecting...</h2>
+              <p class="auth-subtitle">Checking admin setup status.</p>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ADMIN: DASHBOARD TAB -->
+        <section id="tab-dashboard" class="tab-panel admin-tab">
+          <div class="grid-layout">
+
             <!-- Server Control Card -->
             <div class="glass-card control-card span-2">
               <h3>System Control Console</h3>
@@ -125,8 +344,8 @@
                   <div class="meter-ring">
                     <svg viewBox="0 0 36 36" class="circular-chart cyan">
                       <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                      <path id="cpu-ring" class="circle" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                      <text x="18" y="20.35" class="percentage" id="cpu-ring-text">0%</text>
+                      <path id="admin-cpu-ring" class="circle" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                      <text x="18" y="20.35" class="percentage" id="admin-cpu-ring-text">0%</text>
                     </svg>
                   </div>
                   <span class="meter-label">CPU LOAD</span>
@@ -135,8 +354,8 @@
                   <div class="meter-ring">
                     <svg viewBox="0 0 36 36" class="circular-chart purple">
                       <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                      <path id="mem-ring" class="circle" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                      <text x="18" y="20.35" class="percentage" id="mem-ring-text">0%</text>
+                      <path id="admin-mem-ring" class="circle" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                      <text x="18" y="20.35" class="percentage" id="admin-mem-ring-text">0%</text>
                     </svg>
                   </div>
                   <span class="meter-label">RAM LOAD (max 8GB)</span>
@@ -157,15 +376,15 @@
           </div>
         </section>
 
-        <!-- 2. GAME SETTINGS TAB -->
-        <section id="tab-settings" class="tab-panel">
+        <!-- ADMIN: GAME SETTINGS TAB -->
+        <section id="tab-settings" class="tab-panel admin-tab">
           <div class="glass-card">
             <h3>Configuration Editor</h3>
             <p class="description">Modifies both <code>SpaceEngineers-Dedicated.cfg</code> and the active world's <code>Sandbox_config.sbc</code> files.</p>
-            
+
             <form id="config-form" class="config-form">
               <div class="form-grid">
-                
+
                 <!-- General Section -->
                 <div class="form-section span-2">
                   <h4>General Server Properties</h4>
@@ -219,7 +438,6 @@
                       <input type="number" id="cfg-maxPlayers" min="1" max="64">
                     </div>
                   </div>
-                  
                   <div class="inputs-row">
                     <div class="form-group">
                       <label for="cfg-inventorySizeMultiplier">Inventory Multiplier</label>
@@ -230,7 +448,6 @@
                       <input type="number" id="cfg-assemblerSpeedMultiplier" step="0.1" min="1">
                     </div>
                   </div>
-
                   <div class="inputs-row">
                     <div class="form-group">
                       <label for="cfg-refinerySpeedMultiplier">Refinery Speed Multiplier</label>
@@ -241,7 +458,6 @@
                       <input type="number" id="cfg-welderSpeedMultiplier" step="0.1" min="1">
                     </div>
                   </div>
-
                   <div class="inputs-row">
                     <div class="form-group">
                       <label for="cfg-grinderSpeedMultiplier">Grinder Speed Multiplier</label>
@@ -252,7 +468,6 @@
                       <input type="number" id="cfg-autoSaveInMinutes" min="1">
                     </div>
                   </div>
-
                   <div class="inputs-row">
                     <div class="form-group">
                       <label for="cfg-viewDistance">View Distance (m)</label>
@@ -297,12 +512,12 @@
           </div>
         </section>
 
-        <!-- 3. MODS MANAGER TAB -->
-        <section id="tab-mods" class="tab-panel">
+        <!-- ADMIN: MODS MANAGER TAB -->
+        <section id="tab-mods" class="tab-panel admin-tab">
           <div class="glass-card">
             <h3>Steam Workshop Mod List</h3>
             <p class="description">Add Steam Workshop Mod IDs here. Space Engineers will download mods automatically on start. When you add a mod, all required dependencies are also automatically discovered and added.</p>
-            
+
             <div class="mod-add-container">
               <div class="form-group">
                 <label for="new-mod-id">Steam Workshop Mod ID (Press Enter or click Add Mod)</label>
@@ -326,9 +541,7 @@
                     </tr>
                   </thead>
                   <tbody id="mods-table-body">
-                    <tr>
-                      <td colspan="4" class="text-center">Loading mod configuration...</td>
-                    </tr>
+                    <tr><td colspan="4" class="text-center">Loading mod configuration...</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -341,10 +554,10 @@
           </div>
         </section>
 
-        <!-- 4. SAVES & BACKUPS TAB -->
-        <section id="tab-backups" class="tab-panel">
+        <!-- ADMIN: SAVES & BACKUPS TAB -->
+        <section id="tab-backups" class="tab-panel admin-tab">
           <div class="grid-layout">
-            
+
             <!-- Saves Manager -->
             <div class="glass-card span-2">
               <h3>Worlds & Save Directories</h3>
@@ -359,9 +572,7 @@
                     </tr>
                   </thead>
                   <tbody id="worlds-table-body">
-                    <tr>
-                      <td colspan="3" class="text-center">No worlds found. Start the server to generate one!</td>
-                    </tr>
+                    <tr><td colspan="3" class="text-center">No worlds found. Start the server to generate one!</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -397,7 +608,6 @@
                 </button>
               </div>
               <p>Zipped copies of the entire <code>Saves</code> directory. Managed by retention configuration.</p>
-              
               <div class="table-wrapper">
                 <table class="data-table">
                   <thead>
@@ -409,9 +619,7 @@
                     </tr>
                   </thead>
                   <tbody id="backups-table-body">
-                    <tr>
-                      <td colspan="4" class="text-center">Loading backups...</td>
-                    </tr>
+                    <tr><td colspan="4" class="text-center">Loading backups...</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -419,8 +627,8 @@
           </div>
         </section>
 
-        <!-- 5. LIVE CONSOLE TAB -->
-        <section id="tab-console" class="tab-panel">
+        <!-- ADMIN: LIVE CONSOLE TAB -->
+        <section id="tab-console" class="tab-panel admin-tab">
           <div class="glass-card console-card-full">
             <div class="console-header">
               <div class="console-actions-left">

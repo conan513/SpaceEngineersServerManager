@@ -8,6 +8,7 @@ import util from 'util';
 import xml2js from 'xml2js';
 import AdmZip from 'adm-zip';
 import { fileURLToPath } from 'url';
+import crypto from 'crypto';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -25,7 +26,9 @@ let config = {
   autoBackupEnabled: true,
   autoBackupIntervalHours: 6,
   autoBackupRetentionCount: 10,
-  autoUpdateOnStart: false
+  autoUpdateOnStart: false,
+  adminPasswordHash: '',
+  adminSalt: ''
 };
 
 // Resolve paths (expand ~ to home directory)
@@ -725,48 +728,160 @@ async function updateSettingsInSbcFile(filePath, updates) {
   }
 }
 
+// Auth helpers and middleware
+const sessions = new Set();
+
+function hashPassword(password, salt) {
+  return crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha512').toString('hex');
+}
+
+function generateSalt() {
+  return crypto.randomBytes(16).toString('hex');
+}
+
+function generateToken() {
+  return crypto.randomBytes(32).toString('hex');
+}
+
+function requireAdmin(req, res, next) {
+  let token = req.query.token;
+  if (!token) {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7);
+    }
+  }
+  if (token && sessions.has(token)) {
+    return next();
+  }
+  res.status(401).json({ error: 'Unauthorized' });
+}
+
 // Express app setup
 const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 1. GET STATUS
+// Auth API endpoints
+app.post('/api/admin/setup', async (req, res) => {
+  if (config.adminPasswordHash) {
+    return res.status(400).json({ error: 'Admin password has already been set.' });
+  }
+  const { password } = req.body;
+  if (!password || password.length < 6) {
+    return res.status(400).json({ error: 'Password must be at least 6 characters long.' });
+  }
+
+  try {
+    const salt = generateSalt();
+    const hash = hashPassword(password, salt);
+    config.adminPasswordHash = hash;
+    config.adminSalt = salt;
+    await saveConfig();
+    
+    // Auto login on setup
+    const token = generateToken();
+    sessions.add(token);
+
+    addLog('Admin password set successfully during setup.', 'info');
+    res.json({ success: true, token });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/admin/login', async (req, res) => {
+  if (!config.adminPasswordHash) {
+    return res.status(400).json({ error: 'Admin account has not been set up yet.' });
+  }
+  const { password } = req.body;
+  if (!password) {
+    return res.status(400).json({ error: 'Password is required.' });
+  }
+
+  const hash = hashPassword(password, config.adminSalt);
+  if (hash === config.adminPasswordHash) {
+    const token = generateToken();
+    sessions.add(token);
+    res.json({ success: true, token });
+  } else {
+    res.status(401).json({ error: 'Incorrect password.' });
+  }
+});
+
+app.post('/api/admin/logout', (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.substring(7);
+    sessions.delete(token);
+  }
+  res.json({ success: true });
+});
+
+// 1. GET STATUS (auth-aware: admin gets full config, public gets safe subset)
 app.get('/api/status', async (req, res) => {
+  // Check if request is authenticated
+  let isAdminReq = false;
+  let token = req.query.token;
+  if (!token) {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) token = authHeader.substring(7);
+  }
+  if (token && sessions.has(token)) isAdminReq = true;
+
   let activeWorld = 'None';
+  let serverName = 'Space Engineers Server';
+  let serverPort = 27016;
+  let maxPlayers = 4;
+  let gameMode = 'Survival';
+  let mods = [];
   try {
     const mainCfg = await readSedsConfig();
     if (mainCfg) {
       activeWorld = mainCfg.MyConfigDedicated?.WorldName || 'Default World';
+      serverName = mainCfg.MyConfigDedicated?.ServerName || serverName;
+      serverPort = mainCfg.MyConfigDedicated?.Port || serverPort;
+      maxPlayers = mainCfg.MyConfigDedicated?.SessionSettings?.MaxPlayers || maxPlayers;
+      gameMode = mainCfg.MyConfigDedicated?.SessionSettings?.GameMode || gameMode;
     }
   } catch(e) {}
 
-  let worlds = [];
-  try {
-    const savesPath = path.join(serverDataPath, 'Saves');
-    if (existsSync(savesPath)) {
-      const files = await fs.readdir(savesPath);
-      for (const file of files) {
-        const stat = await fs.stat(path.join(savesPath, file));
-        if (stat.isDirectory()) {
-          worlds.push(file);
-        }
-      }
-    }
-  } catch(e) {}
+  try { mods = await loadModsJson(); } catch(e) {}
 
-  res.json({
+  const baseResponse = {
     status: serverStatus,
     uptime: serverUptimeStart ? Math.floor((Date.now() - serverUptimeStart) / 1000) : 0,
     cpu: resourceUsage.cpu,
     memory: resourceUsage.memory,
     activeWorld,
-    worlds,
-    config
-  });
+    serverName,
+    serverPort,
+    maxPlayers,
+    gameMode,
+    mods,
+    adminSetup: !!config.adminPasswordHash
+  };
+
+  if (isAdminReq) {
+    let worlds = [];
+    try {
+      const savesPath = path.join(serverDataPath, 'Saves');
+      if (existsSync(savesPath)) {
+        const files = await fs.readdir(savesPath);
+        for (const file of files) {
+          const stat = await fs.stat(path.join(savesPath, file));
+          if (stat.isDirectory()) worlds.push(file);
+        }
+      }
+    } catch(e) {}
+    return res.json({ ...baseResponse, worlds, config });
+  }
+
+  res.json(baseResponse);
 });
 
-// 2. SERVER CONTROL ACTIONS
-app.post('/api/control', async (req, res) => {
+// 2. SERVER CONTROL ACTIONS (admin only)
+app.post('/api/control', requireAdmin, async (req, res) => {
   const { action } = req.body;
   if (action === 'start') {
     const success = await startServer();
@@ -788,8 +903,8 @@ app.post('/api/control', async (req, res) => {
   res.status(400).json({ error: 'Invalid action' });
 });
 
-// 3. GET FULL / REALTIME LOGS STREAM
-app.get('/api/logs/stream', (req, res) => {
+// 3. GET FULL / REALTIME LOGS STREAM (admin only)
+app.get('/api/logs/stream', requireAdmin, (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
@@ -807,10 +922,10 @@ app.get('/api/logs/stream', (req, res) => {
   });
 });
 
-// 4. GET SYSTEM / GAME LOGS
-app.get('/api/logs/full', async (req, res) => {
+// 4. GET SYSTEM / GAME LOGS (admin only)
+app.get('/api/logs/full', requireAdmin, async (req, res) => {
   try {
-    const logFilePath = path.join(serverDataPath, 'SpaceEngineersDedicated.log');
+    const logFilePath = path.join(serverDataPath, 'SpaceEngineers-Dedicated.log');
     if (existsSync(logFilePath)) {
       const data = await fs.readFile(logFilePath, 'utf-8');
       const lines = data.split('\n').slice(-1000).join('\n'); // Last 1000 lines
@@ -820,8 +935,8 @@ app.get('/api/logs/full', async (req, res) => {
   res.send(logHistory.map(l => `[${l.type}] ${l.text}`).join('\n'));
 });
 
-// 5. GET CONFIGURATIONS
-app.get('/api/config', async (req, res) => {
+// 5. GET CONFIGURATIONS (admin only)
+app.get('/api/config', requireAdmin, async (req, res) => {
   try {
     const mainCfg = await readSedsConfig();
     if (!mainCfg) {
@@ -860,8 +975,8 @@ app.get('/api/config', async (req, res) => {
   }
 });
 
-// 6. UPDATE CONFIGURATIONS
-app.post('/api/config', async (req, res) => {
+// 6. UPDATE CONFIGURATIONS (admin only)
+app.post('/api/config', requireAdmin, async (req, res) => {
   try {
     const updates = req.body;
     const mainCfg = await readSedsConfig();
@@ -997,8 +1112,8 @@ async function fetchModDependencies(modId, visited = new Set()) {
   }
 }
 
-// 7. GET MODS LIST
-app.get('/api/mods', async (req, res) => {
+// 7. GET MODS LIST (admin only)
+app.get('/api/mods', requireAdmin, async (req, res) => {
   try {
     // Primary source: mods.json (has titles, set by POST /api/mods)
     const mods = await loadModsJson();
@@ -1022,8 +1137,8 @@ app.get('/api/mods', async (req, res) => {
   }
 });
 
-// 8. UPDATE MODS LIST
-app.post('/api/mods', async (req, res) => {
+// 8. UPDATE MODS LIST (admin only)
+app.post('/api/mods', requireAdmin, async (req, res) => {
   try {
     const { mods } = req.body; // Array of { id, title, isDependency? }
     if (!Array.isArray(mods)) return res.status(400).json({ error: 'Mods must be an array' });
@@ -1078,8 +1193,8 @@ app.post('/api/mods', async (req, res) => {
   }
 });
 
-// 8b. RESOLVE MOD DEPENDENCIES
-app.post('/api/mods/resolve', async (req, res) => {
+// 8b. RESOLVE MOD DEPENDENCIES (admin only)
+app.post('/api/mods/resolve', requireAdmin, async (req, res) => {
   const { modId } = req.body;
   if (!modId) return res.status(400).json({ error: 'modId is required' });
 
@@ -1099,8 +1214,8 @@ app.post('/api/mods/resolve', async (req, res) => {
   }
 });
 
-// 9. GET BACKUPS
-app.get('/api/backups', async (req, res) => {
+// 9. GET BACKUPS (admin only)
+app.get('/api/backups', requireAdmin, async (req, res) => {
   try {
     const files = await fs.readdir(backupsPath);
     const backups = [];
@@ -1122,8 +1237,8 @@ app.get('/api/backups', async (req, res) => {
   }
 });
 
-// 10. CREATE BACKUP
-app.post('/api/backups/create', async (req, res) => {
+// 10. CREATE BACKUP (admin only)
+app.post('/api/backups/create', requireAdmin, async (req, res) => {
   const zipFilename = await triggerBackup('manual');
   if (zipFilename) {
     res.json({ success: true, filename: zipFilename });
@@ -1132,8 +1247,8 @@ app.post('/api/backups/create', async (req, res) => {
   }
 });
 
-// 11. RESTORE BACKUP
-app.post('/api/backups/restore', async (req, res) => {
+// 11. RESTORE BACKUP (admin only)
+app.post('/api/backups/restore', requireAdmin, async (req, res) => {
   const { filename } = req.body;
   if (!filename) return res.status(400).json({ error: 'Filename is required' });
 
@@ -1165,8 +1280,8 @@ app.post('/api/backups/restore', async (req, res) => {
   }
 });
 
-// 12. DELETE BACKUP
-app.delete('/api/backups/:filename', async (req, res) => {
+// 12. DELETE BACKUP (admin only)
+app.delete('/api/backups/:filename', requireAdmin, async (req, res) => {
   const { filename } = req.params;
   const filePath = path.join(backupsPath, filename);
   if (!existsSync(filePath)) return res.status(404).json({ error: 'Backup not found' });
@@ -1180,8 +1295,8 @@ app.delete('/api/backups/:filename', async (req, res) => {
   }
 });
 
-// 13. SAVE MANAGER CONFIGURATION (e.g. settings in config.json)
-app.post('/api/manager-config', async (req, res) => {
+// 13. SAVE MANAGER CONFIGURATION (admin only)
+app.post('/api/manager-config', requireAdmin, async (req, res) => {
   try {
     const updates = req.body;
     if (updates.autoBackupEnabled !== undefined) config.autoBackupEnabled = updates.autoBackupEnabled;
@@ -1196,8 +1311,8 @@ app.post('/api/manager-config', async (req, res) => {
   }
 });
 
-// 14. GET SCENARIOS LIST
-app.get('/api/scenarios', async (req, res) => {
+// 14. GET SCENARIOS LIST (admin only)
+app.get('/api/scenarios', requireAdmin, async (req, res) => {
   try {
     const worldsPath = path.join(serverFilesPath, 'Content', 'CustomWorlds');
     if (!existsSync(worldsPath)) {
@@ -1217,8 +1332,8 @@ app.get('/api/scenarios', async (req, res) => {
   }
 });
 
-// 15. CREATE NEW WORLD (CONFIG ONLY - SEDS GENERATES ON BOOT)
-app.post('/api/worlds/create', async (req, res) => {
+// 15. CREATE NEW WORLD (admin only)
+app.post('/api/worlds/create', requireAdmin, async (req, res) => {
   if (serverStatus !== 'STOPPED') {
     return res.status(400).json({ error: 'Server must be stopped to create a new world' });
   }
@@ -1248,8 +1363,8 @@ app.post('/api/worlds/create', async (req, res) => {
   }
 });
 
-// 16. ACTIVATE EXISTING WORLD
-app.post('/api/worlds/activate', async (req, res) => {
+// 16. ACTIVATE EXISTING WORLD (admin only)
+app.post('/api/worlds/activate', requireAdmin, async (req, res) => {
   if (serverStatus !== 'STOPPED') {
     return res.status(400).json({ error: 'Server must be stopped to load an existing world' });
   }
