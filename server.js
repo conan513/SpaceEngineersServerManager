@@ -239,7 +239,8 @@ async function writeModsToXmlFile(filePath, modsBlock) {
   return true;
 }
 
-// Sync mods from mods.json into the active world's sbc files before server start
+// Sync mods from mods.json into the active world's sbc files before server start.
+// Returns true if start can proceed normally, false if a new-world restart cycle was initiated.
 async function syncModsToActiveWorld() {
   try {
     const mods = await loadModsJson();
@@ -259,20 +260,82 @@ async function syncModsToActiveWorld() {
       await writeSedsConfig(mainCfg);
     }
 
-    // 2. Write to .cfg mods block
+    // 2. Write to .cfg mods block (always works, regardless of world state)
     const cfgBlock = buildCfgModsXmlBlock(mods);
     await writeModsToXmlFile(CONFIG_FILE_PATH, cfgBlock);
 
     // 3. Write to Sandbox_config.sbc with correct ModItem format
     const paths = await getActiveWorldPaths();
     if (paths) {
-      // Force Experimental Mode in world save files
-      await updateSettingsInSbcFile(paths.sandboxConfigPath, { experimentalMode: true });
+      if (existsSync(paths.sandboxConfigPath)) {
+        // World config already exists — write mods now
+        await updateSettingsInSbcFile(paths.sandboxConfigPath, { experimentalMode: true });
+        const sbcBlock = buildSandboxModsXmlBlock(mods);
+        const okConfig = await writeModsToXmlFile(paths.sandboxConfigPath, sbcBlock);
+        if (okConfig) addLog(`✅ Pre-start sync: mods written to Sandbox_config.sbc`, 'info');
+      } else {
+        // New world — Sandbox_config.sbc doesn't exist yet.
+        // Let the server run once to generate the world files, then stop → inject mods → restart.
+        addLog(`⏳ New world detected — server will run briefly to generate world files, then auto-restart with mods.`, 'info');
 
-      const sbcBlock = buildSandboxModsXmlBlock(mods);
-      const okConfig = await writeModsToXmlFile(paths.sandboxConfigPath, sbcBlock);
-      
-      if (okConfig) addLog(`✅ Pre-start sync: mods written to Sandbox_config.sbc`, 'info');
+        let attempts = 0;
+        const maxAttempts = 240; // 240 × 500ms = 2 minutes max wait
+        const pollInterval = setInterval(async () => {
+          attempts++;
+
+          if (serverStatus === 'STOPPED') {
+            clearInterval(pollInterval);
+            addLog(`⚠️ Server stopped before generating world config files — aborting auto-restart sync.`, 'warning');
+            return;
+          }
+
+          if (existsSync(paths.sandboxConfigPath)) {
+            clearInterval(pollInterval);
+            addLog(`✅ Sandbox_config.sbc created by server — stopping to inject mods...`, 'info');
+
+            // Give the server a moment to finish writing all world files
+            await new Promise(r => setTimeout(r, 2000));
+
+            // Inject mods + all current session settings into the freshly created world config
+            try {
+              // Read all current session settings from the dedicated server config
+              const currentCfg = await readSedsConfig();
+              const currentSettings = currentCfg?.MyConfigDedicated?.SessionSettings || {};
+              const parsedSettings = parseSessionSettings(currentSettings);
+
+              // Write all settings to the new world's Sandbox_config.sbc
+              await updateSettingsInSbcFile(paths.sandboxConfigPath, parsedSettings);
+              addLog(`✅ All session settings synced to new world's Sandbox_config.sbc`, 'info');
+
+              // Write mods block
+              const sbcBlock = buildSandboxModsXmlBlock(mods);
+              await writeModsToXmlFile(paths.sandboxConfigPath, sbcBlock);
+              addLog(`✅ Mods injected into new world's Sandbox_config.sbc (${mods.length} mod(s))`, 'info');
+            } catch (e) {
+              addLog(`⚠️ Failed to inject settings/mods: ${e.message}`, 'warning');
+            }
+
+            // Stop the server
+            addLog(`🔄 Stopping server for mod-injection restart...`, 'info');
+            await stopServer();
+
+            // Wait until fully stopped
+            let stopWait = 0;
+            while (serverStatus !== 'STOPPED' && stopWait < 60) {
+              await new Promise(r => setTimeout(r, 1000));
+              stopWait++;
+            }
+
+            // Restart — this time Sandbox_config.sbc exists so mods will be active
+            addLog(`🚀 Restarting server with mods applied to new world...`, 'info');
+            await startServer();
+
+          } else if (attempts >= maxAttempts) {
+            clearInterval(pollInterval);
+            addLog(`⚠️ Sandbox_config.sbc not created within 2 minutes — mods may not be in world save.`, 'warning');
+          }
+        }, 500);
+      }
     } else {
       addLog('No active world paths resolved — mods will be loaded from .cfg on launch.', 'warning');
     }
