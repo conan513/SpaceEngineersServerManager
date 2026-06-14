@@ -17,7 +17,7 @@ const __dirname = path.dirname(__filename);
 const CONFIG_FILE = path.join(__dirname, 'config.json');
 
 let config = {
-  port: 8080,
+  port: 8085,
   steamCmdPath: 'steamcmd',
   winePrefixPath: '~/.local/share/se-server-manager/wineprefix',
   serverFilesPath: '~/.local/share/se-server-manager/server-files',

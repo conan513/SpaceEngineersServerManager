@@ -1,5 +1,5 @@
 {
-  "port": 8080,
+  "port": 8085,
   "steamCmdPath": "steamcmd",
   "winePrefixPath": "~/.local/share/se-server-manager/wineprefix",
   "serverFilesPath": "~/.local/share/se-server-manager/server-files",
