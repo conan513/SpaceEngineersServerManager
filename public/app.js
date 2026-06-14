@@ -347,8 +347,6 @@ class ServerManagerApp {
     document.getElementById('pub-gamemode').textContent = data.gameMode || 'Survival';
     document.getElementById('pub-maxplayers').textContent = data.maxPlayers || '4';
     document.getElementById('pub-world').textContent = data.activeWorld || 'Default World';
-    document.getElementById('pub-cpu').textContent = `${data.cpu}%`;
-    document.getElementById('pub-mem').textContent = `${data.memory} MB`;
     document.getElementById('pub-modcount').textContent = (data.mods || []).length;
 
     // Public status badge
@@ -401,7 +399,6 @@ class ServerManagerApp {
     } else {
       this.stopUptimeTicker();
       document.getElementById('quick-uptime').textContent = '00:00:00';
-      document.getElementById('pub-uptime').textContent = '00:00:00';
     }
   }
 
@@ -445,7 +442,6 @@ class ServerManagerApp {
       this.uptime++;
       const t = this.formatTime(this.uptime);
       document.getElementById('quick-uptime').textContent = t;
-      document.getElementById('pub-uptime').textContent = t;
     }, 1000);
   }
 
