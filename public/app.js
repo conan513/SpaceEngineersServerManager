@@ -341,6 +341,8 @@ class ServerManagerApp {
     document.getElementById('public-server-name').textContent = data.serverName || 'Space Engineers Server';
     document.getElementById('public-server-tagline').textContent =
       `${data.gameMode || 'Survival'} · Max ${data.maxPlayers || 4} players`;
+    document.getElementById('pub-ip').textContent = data.serverIp || '0.0.0.0';
+    document.getElementById('pub-playersonline').textContent = `${data.activePlayers || 0} / ${data.maxPlayers || 4}`;
     document.getElementById('pub-port').textContent = data.serverPort || '27016';
     document.getElementById('pub-gamemode').textContent = data.gameMode || 'Survival';
     document.getElementById('pub-maxplayers').textContent = data.maxPlayers || '4';

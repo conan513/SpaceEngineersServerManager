@@ -98,6 +98,7 @@ let serverUptimeStart = null;
 let resourceUsage = { cpu: 0, memory: 0 };
 let logHistory = [];
 let logClients = [];
+let activePlayers = 0;
 let resourceInterval = null;
 let autoBackupInterval = null;
 let logFileTailProcess = null;
@@ -351,6 +352,7 @@ function handleServerExit(code) {
   serverStatus = 'STOPPED';
   serverUptimeStart = null;
   resourceUsage = { cpu: 0, memory: 0 };
+  activePlayers = 0;
   addLog(`Server stopped. (Exit code: ${code})`, 'info');
 }
 
@@ -431,6 +433,14 @@ function startLogFileTail() {
           if (serverStatus === 'RUNNING' || serverStatus === 'STARTING') {
             addLog('⚠️ Shutdown detected in game log.', 'warning');
           }
+        }
+
+        // Detect player connections/disconnections
+        if (trimmed.includes('Player connected') || trimmed.includes('OnPlayerJoined') || trimmed.includes('joined the game')) {
+          activePlayers++;
+        }
+        if (trimmed.includes('Player disconnected') || trimmed.includes('OnPlayerLeft') || trimmed.includes('left the game')) {
+          activePlayers = Math.max(0, activePlayers - 1);
         }
 
         addLog(trimmed, 'stdout');
@@ -832,6 +842,7 @@ app.get('/api/status', async (req, res) => {
   let activeWorld = 'None';
   let serverName = 'Space Engineers Server';
   let serverPort = 27016;
+  let serverIp = '0.0.0.0';
   let maxPlayers = 4;
   let gameMode = 'Survival';
   let mods = [];
@@ -841,10 +852,16 @@ app.get('/api/status', async (req, res) => {
       activeWorld = mainCfg.MyConfigDedicated?.WorldName || 'Default World';
       serverName = mainCfg.MyConfigDedicated?.ServerName || serverName;
       serverPort = mainCfg.MyConfigDedicated?.Port || serverPort;
+      serverIp = mainCfg.MyConfigDedicated?.IP || serverIp;
       maxPlayers = mainCfg.MyConfigDedicated?.SessionSettings?.MaxPlayers || maxPlayers;
       gameMode = mainCfg.MyConfigDedicated?.SessionSettings?.GameMode || gameMode;
     }
   } catch(e) {}
+
+  if (serverIp === '0.0.0.0' || serverIp === '') {
+    const host = req.headers.host || '';
+    serverIp = host.split(':')[0] || '127.0.0.1';
+  }
 
   try { mods = await loadModsJson(); } catch(e) {}
 
@@ -856,9 +873,11 @@ app.get('/api/status', async (req, res) => {
     activeWorld,
     serverName,
     serverPort,
+    serverIp,
     maxPlayers,
     gameMode,
     mods,
+    activePlayers,
     adminSetup: !!config.adminPasswordHash
   };
 
