@@ -63,16 +63,16 @@ body {
   letter-spacing: 0.03em;
 }
 
-/* Cockpit background image — close-up control panel */
+/* Space star system background */
 body::before {
   content: '';
   position: fixed;
   inset: 0;
-  background-image: url('cockpit_bg.png');
+  background-image: url('space_bg.png');
   background-size: cover;
   background-position: center center;
   background-attachment: fixed;
-  opacity: 0.72;
+  opacity: 0.6;
   pointer-events: none;
   z-index: 0;
 }
