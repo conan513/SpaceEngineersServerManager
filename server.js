@@ -400,14 +400,15 @@ function startLogFileTail() {
   // Poll every 500ms for new content in the log file
   logFilePollInterval = setInterval(async () => {
     try {
-      // Resolve the log file path dynamically if not found yet
-      if (!resolvedLogPath) {
-        resolvedLogPath = await findCurrentLogFile();
-        if (!resolvedLogPath) return; // Log file not created yet
+      // Always check for the newest log file — handles new sessions creating new files
+      const latestLogPath = await findCurrentLogFile();
+      if (!latestLogPath) return; // No log file yet
+
+      // If a new (different) log file appeared, switch to it and read from the beginning
+      if (latestLogPath !== resolvedLogPath) {
+        resolvedLogPath = latestLogPath;
+        logFileLastSize = 0; // Read from start of the new log file
         addLog(`Game log file found: ${resolvedLogPath}`, 'info');
-        const stat = await fs.stat(resolvedLogPath);
-        logFileLastSize = stat.size; // Start reading from current end
-        return;
       }
 
       const stat = await fs.stat(resolvedLogPath);
