@@ -565,6 +565,12 @@ class ServerManagerApp {
       document.getElementById('cfg-backpackDespawnTimer').value = data.backpackDespawnTimer ?? 5;
       document.getElementById('cfg-maxProductionQueueLength').value = data.maxProductionQueueLength ?? 50;
       document.getElementById('cfg-autoSaveInMinutes').value = data.autoSaveInMinutes ?? 5;
+      document.getElementById('cfg-foodConsumptionRate').value = data.foodConsumptionRate ?? 0;
+      document.getElementById('cfg-reputationDecayRate').value = data.reputationDecayRate ?? 0.5;
+      document.getElementById('cfg-floraDensityMultiplier').value = data.floraDensityMultiplier ?? 1;
+      document.getElementById('cfg-depositsCountCoefficient').value = data.depositsCountCoefficient ?? 2;
+      document.getElementById('cfg-depositSizeDenominator').value = data.depositSizeDenominator ?? 30;
+      document.getElementById('cfg-harvestRatioMultiplier').value = data.harvestRatioMultiplier ?? 1;
 
       // ── Accordion 3: Toggles & Gameplay Rules ──
       document.getElementById('cfg-experimentalMode').checked = !!data.experimentalMode;
@@ -778,6 +784,12 @@ class ServerManagerApp {
         backpackDespawnTimer: parseInt(document.getElementById('cfg-backpackDespawnTimer').value),
         maxProductionQueueLength: parseInt(document.getElementById('cfg-maxProductionQueueLength').value),
         autoSaveInMinutes: parseInt(document.getElementById('cfg-autoSaveInMinutes').value),
+        foodConsumptionRate: parseFloat(document.getElementById('cfg-foodConsumptionRate').value),
+        reputationDecayRate: parseFloat(document.getElementById('cfg-reputationDecayRate').value),
+        floraDensityMultiplier: parseFloat(document.getElementById('cfg-floraDensityMultiplier').value),
+        depositsCountCoefficient: parseFloat(document.getElementById('cfg-depositsCountCoefficient').value),
+        depositSizeDenominator: parseFloat(document.getElementById('cfg-depositSizeDenominator').value),
+        harvestRatioMultiplier: parseFloat(document.getElementById('cfg-harvestRatioMultiplier').value),
 
         // ── Accordion 3: Toggles & Gameplay Rules ──
         experimentalMode: document.getElementById('cfg-experimentalMode').checked,
