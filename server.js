@@ -104,6 +104,8 @@ let autoBackupInterval = null;
 let logFileTailProcess = null;
 let logFileLastSize = 0;
 let logFilePollInterval = null;
+let stopTimeout = null;
+let missingProcessTicks = 0;
 
 // Add logs to memory and stream to SSE clients
 function addLog(text, type = 'info') {
@@ -144,12 +146,17 @@ async function updateResourceUsage() {
   const pids = await getServerPids();
   if (pids.length === 0) {
     if (serverStatus === 'RUNNING') {
-      addLog('Space Engineers process no longer detected.', 'warning');
-      handleServerExit(-1);
+      missingProcessTicks++;
+      if (missingProcessTicks >= 5) {
+        addLog('Space Engineers process no longer detected.', 'warning');
+        handleServerExit(-1);
+      }
     }
     resourceUsage = { cpu: 0, memory: 0 };
     return;
   }
+
+  missingProcessTicks = 0;
 
   let totalCpu = 0;
   let totalMem = 0;
@@ -416,6 +423,11 @@ function handleServerExit(code) {
   serverUptimeStart = null;
   resourceUsage = { cpu: 0, memory: 0 };
   activePlayers = 0;
+  missingProcessTicks = 0;
+  if (stopTimeout) {
+    clearTimeout(stopTimeout);
+    stopTimeout = null;
+  }
   addLog(`Server stopped. (Exit code: ${code})`, 'info');
 }
 
@@ -563,7 +575,8 @@ async function stopServer() {
     }
     
     // Wait for shutdown or kill forcefully after 15 seconds
-    setTimeout(async () => {
+    stopTimeout = setTimeout(async () => {
+      stopTimeout = null;
       const remainingPids = await getServerPids();
       if (remainingPids.length > 0) {
         addLog(`Force killing processes: ${remainingPids.join(', ')}`, 'warning');
