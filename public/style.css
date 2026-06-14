@@ -68,11 +68,14 @@ body::before {
   content: '';
   position: fixed;
   inset: 0;
-  background-image: url('space_bg.png');
+  background-image: 
+    radial-gradient(circle, transparent 20%, rgba(2, 4, 8, 0.9) 100%),
+    url('space_bg.png');
   background-size: cover;
   background-position: center center;
   background-attachment: fixed;
-  opacity: 0.6;
+  opacity: 0.75;
+  filter: blur(6px) brightness(0.7);
   pointer-events: none;
   z-index: 0;
 }
